@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/psykostudio/RichText#readme",
   "dependencies": {
-    "opentype": "^0.1.2"
+    "@types/opentype": "0.0.4",
+    "opentype.js": "^0.11.0"
   }
 }

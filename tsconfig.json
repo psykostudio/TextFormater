@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "es6",
         "module": "commonjs",
-        "types": [],
+        "types": [ "opentype" ],
         "outDir": "./dist",
         "sourceMap": true,
         "declaration": true,
