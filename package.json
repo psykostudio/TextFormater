@@ -1,0 +1,23 @@
+{
+  "name": "textcomposer",
+  "version": "1.0.0",
+  "description": "compose text layouts with opentype and draw them with the engine of your choice.",
+  "main": "dist/index.js",
+  "scripts": {
+    "watch": "tsc -p . --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psykostudio/RichText.git"
+  },
+  "author": "Olivier de Testa",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/psykostudio/RichText/issues"
+  },
+  "homepage": "https://github.com/psykostudio/RichText#readme",
+  "dependencies": {
+    "opentype": "^0.1.2"
+  }
+}
