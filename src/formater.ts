@@ -10,7 +10,8 @@ export class Formater {
   };
 
   private fonts: { [name: string]: Font } = {};
-
+  public context: CanvasRenderingContext2D;
+  
   public async loadFonts(fonts: { path: string; name: string }[]) {
     const files = [];
     console.log(fonts);
@@ -64,15 +65,18 @@ export class Formater {
           break;
         case tokenTypes.TEXT:
           token[`style`] = this.mergeStyles(styles);
-          const font = this.getFont(token[`style`].fontName);
           token[`attributes`] = Object.assign(
             {},
             attributes[attributes.length - 1]
           );
+          token[`style`].font = this.getFontByName(token[`style`].fontName);
           token[`glyphs`] = [];
+          
           token.text.split("").forEach((char: string) => {
-            const glyph = font.charToGlyph(char);
+            const glyph = token[`style`].font.charToGlyph(char);
             token[`glyphs`].push(glyph);
+            this.context.fillStyle = token[`style`].color;
+            glyph.draw(this.context, 0, 0, token[`style`].fontSize);
           });
           delete token.type;
           console.log(token);
@@ -82,7 +86,7 @@ export class Formater {
     }
   }
 
-  private getFont(name) {
+  private getFontByName(name) {
     return this.fonts[name];
   }
 
