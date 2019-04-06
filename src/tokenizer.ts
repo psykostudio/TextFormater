@@ -3,7 +3,7 @@ export enum defaultEntityMap {
   amp = "\u0026",
   lt = "\u003C",
   gt = "\u003E",
-  nbsp = "\u00A0"
+  nbsp = "\u00A0",
 }
 
 export enum tokenTypes {

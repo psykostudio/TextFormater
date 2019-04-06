@@ -1,6 +1,6 @@
 {
-  "name": "textcomposer",
-  "version": "1.0.0",
+  "name": "textformater",
+  "version": "0.0.1",
   "description": "compose text layouts with opentype and draw them with the engine of your choice.",
   "main": "dist/index.js",
   "scripts": {
@@ -9,16 +9,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/psykostudio/RichText.git"
+    "url": "git+https://github.com/psykostudio/TextFormater.git"
   },
   "author": "Olivier de Testa",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/psykostudio/RichText/issues"
+    "url": "https://github.com/psykostudio/TextFormater/issues"
   },
-  "homepage": "https://github.com/psykostudio/RichText#readme",
+  "homepage": "https://github.com/psykostudio/TextFormater#readme",
   "dependencies": {
     "@types/opentype": "0.0.4",
-    "opentype.js": "^0.11.0"
+    "fontkit": "^1.8.0",
+    "opentype.js": "^0.11.0",
+    "request": "^2.88.0"
   }
 }
