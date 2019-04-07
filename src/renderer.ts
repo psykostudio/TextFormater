@@ -1,12 +1,22 @@
 import { Token } from "./formater";
 import { Glyph, Font, Path } from "opentype.js";
 import { defaultEntityMap } from "./tokenizer";
+import { Leaf, LeafType } from "./Leaf";
 
 export class CanvasTextRenderer {
   private canvas: HTMLCanvasElement = document.createElement("canvas");
   private context: CanvasRenderingContext2D = this.canvas.getContext("2d");
   private debug: HTMLDivElement;
   private _currentStyle;
+  public renderOptions = {
+    hinting: true,
+    kerning: true,
+    features: {
+      liga: true,
+      rlig: true
+    },
+    letterSpacing: 100
+  };
 
   public clear() {
     this.canvas.width = 1024;
@@ -16,72 +26,45 @@ export class CanvasTextRenderer {
     document.body.appendChild(this.debug);
   }
 
-  public update(tokens: Token[]) {
+  public update(leafs: Leaf[]) {
     let lastX: number = 0;
     let lastY: number = 0;
+    let maxHeight: number = 0;
 
-    tokens.forEach(token => {
+    leafs.forEach(leaf => {
       // new style
-      const font: Font = token.style.font;
-      console.log(token, font);
-      const fontSize: number = token.style.fontSize * 2;
-      const fontRatio = (1 / font.unitsPerEm) * fontSize;
-      const fontColor: string = token.style.color;
+      const fontColor: string = leaf.style.color;
 
       if (lastY === 0) {
-        lastY = font.ascender * fontRatio;
+        lastY = leaf.font.ascender * leaf.fontRatio;
       }
 
       this.context.fillStyle = fontColor;
 
-      token.glyphs.forEach(glyph => {
-        if (glyph.unicode === undefined) {
-          // new line
-          lastY += 100;
+      leaf.x = lastX;
+      // leaf.y = lastY;
+
+      switch (leaf.type) {
+        case LeafType.NewLine:
+          lastY += maxHeight;
+          maxHeight = 0;
           lastX = 0;
-        } else {
-          // new glyph
-          const path = glyph.getPath(lastX, lastY, fontSize);
-          path[`fill`] = fontColor;
-          lastX += glyph.advanceWidth * fontRatio;
-
-          // const svg = path.toSVG(2);
-          // this.canvas.innerHTML += svg;
-
-          path.draw(this.context);
-          // this.drawPath(path);
-        }
-      });
-
-      this.currentStyle = token.style;
-    });
-
-    console.log(tokens);
-  }
-
-  private drawPath(path: Path) {
-    this.context.beginPath();
-    for (let i = 0; i < path.commands.length; i += 1) {
-      const cmd = path.commands[i];
-      if (cmd.type === "M") {
-        this.context.moveTo(cmd.x, cmd.y);
-      } else if (cmd.type === "L") {
-        this.context.lineTo(cmd.x, cmd.y);
-      } else if (cmd.type === "C") {
-        this.context.bezierCurveTo(
-          cmd.x1,
-          cmd.y1,
-          cmd.x2,
-          cmd.y2,
-          cmd.x,
-          cmd.y
-        );
-      } else if (cmd.type === "Q") {
-        this.context.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
-      } else if (cmd.type === "Z") {
-        this.context.closePath();
+          break;
+        case LeafType.Space:
+          //leaf.y = lastY;
+          leaf.draw(this.context);
+          lastX += leaf.width;
+          break;
+        case LeafType.Word:
+          //leaf.y = lastY;
+          leaf.draw(this.context);
+          maxHeight = Math.max(maxHeight, leaf.height);
+          lastX += leaf.width;
+          break;
       }
-    }
+
+      this.currentStyle = leaf.style;
+    });
   }
 
   private set currentStyle(style) {

@@ -199,7 +199,7 @@ export class Chunk {
     );
   }
 
-  private static findPattern(str: string, pos: number, regex: RegExp) {
+  public static findPattern(str: string, pos: number, regex: RegExp) {
     regex.lastIndex = pos;
     const match = regex.exec(str);
     if (!match || match.index !== pos) {
