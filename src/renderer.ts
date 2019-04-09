@@ -26,58 +26,67 @@ export class CanvasTextRenderer {
     document.body.appendChild(this.debug);
   }
 
+  private renderingPasses = [
+    this.shadowRenderPass,
+    this.strokeRenderPass,
+    this.fillRenderPass
+  ];
+
   public update(leafs: Leaf[]) {
-    let lastX: number = 0;
-    let lastY: number = 0;
-    let maxHeight: number = 0;
-
-    leafs.forEach(leaf => {
-      // new style
-      const fontColor: string = leaf.style.color;
-
-      if (lastY === 0) {
-        lastY = leaf.font.ascender * leaf.fontRatio;
-      }
-
-      this.context.fillStyle = fontColor;
-
-      leaf.x = lastX;
-      // leaf.y = lastY;
-
-      switch (leaf.type) {
-        case LeafType.NewLine:
-          lastY += maxHeight;
-          maxHeight = 0;
-          lastX = 0;
-          break;
-        case LeafType.Space:
-          //leaf.y = lastY;
-          leaf.draw(this.context);
-          lastX += leaf.width;
-          break;
-        case LeafType.Word:
-          //leaf.y = lastY;
-          leaf.draw(this.context);
-          maxHeight = Math.max(maxHeight, leaf.height);
-          lastX += leaf.width;
-          break;
-      }
-
-      this.currentStyle = leaf.style;
+    this.renderingPasses.forEach(renderPass => {
+      this.resetRenderPass();
+      leafs.forEach(leaf => {
+        switch (leaf.type) {
+          case LeafType.Glyph:
+          case LeafType.Word:
+            renderPass.call(this, leaf);
+            break;
+        }
+      });
     });
   }
 
-  private set currentStyle(style) {
-    this._currentStyle = style;
-    if (this._currentStyle.fillStyle) {
-      this.context.fillStyle = this._currentStyle.fillStyle;
+  private resetRenderPass(){
+    this.context.fillStyle = null;
+    this.context.shadowColor = null;
+    this.context.strokeStyle = null;
+    this.context.lineWidth = 0;
+    this.context.shadowBlur = 0;
+    this.context.shadowOffsetX = 0;
+    this.context.shadowOffsetY = 0;
+  }
+
+  private shadowRenderPass(leaf: Leaf) {
+    if (leaf.style.shadowColor && leaf.style.shadowBlur) {
+      leaf.draw(this.context);
+
+      this.context.shadowColor = leaf.style.shadowColor;
+      this.context.shadowBlur = leaf.style.shadowBlur || 0;
+      this.context.shadowOffsetX = leaf.style.shadowOffsetX || 0;
+      this.context.shadowOffsetY = leaf.style.shadowOffsetY || 0;
+      this.context.fillStyle = leaf.style.shadowColor;
       this.context.fill();
     }
+  }
 
-    if (this._currentStyle.stroke) {
-      this.context.strokeStyle = this._currentStyle.stroke;
-      this.context.lineWidth = this._currentStyle.strokeWidth;
+  private strokeRenderPass(leaf: Leaf) {
+    if (leaf.style.stroke) {
+      leaf.draw(this.context);
+
+      this.context.strokeStyle = leaf.style.stroke;
+      this.context.fillStyle = leaf.style.stroke;
+      this.context.lineWidth = leaf.style.strokeWidth * 2;
+      this.context.fill();
       this.context.stroke();
+    }
+  }
+
+  private fillRenderPass(leaf: Leaf) {
+    if (leaf.style.color) {
+      leaf.draw(this.context);
+
+      this.context.fillStyle = leaf.style.color;
+      this.context.fill();
     }
   }
 }

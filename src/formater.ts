@@ -1,7 +1,7 @@
 import { Tokenizer, tokenTypes, Chunk } from "./tokenizer";
 import { Glyph, Font } from "opentype.js";
-import { CanvasTextRenderer } from ".";
-import { Leaf } from "./Leaf";
+import { CanvasTextRenderer } from "./renderer";
+import { Leaf, LeafType } from "./Leaf";
 
 export interface Token {
   attributes: any;
@@ -17,8 +17,15 @@ export interface FontStyle {
   color?: string;
   fontWeight?: string;
   fontStyle?: string;
+  stroke?: string;
+  strokeWidth?: number;
   underlineWeight?: number;
   underlineDistance?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  font?: Font;
 }
 export interface FontStyles {
   [styleName: string]: FontStyle;
@@ -27,17 +34,22 @@ export interface FontStyles {
 export class Formater {
   private tokenizer: Tokenizer = new Tokenizer();
   private renderer: CanvasTextRenderer = new CanvasTextRenderer();
+  public leafs: Leaf[];
 
-  private _styles: FontStyles = {
+  private _defaultStyles: FontStyles = {
     default: { color: "black" },
     b: { fontWeight: "Bold" },
     i: { fontStyle: "Italic" },
     a: { color: "blue", underlineWeight: 1, underlineDistance: 2 }
   };
 
+  private _styles: FontStyles = {}
+
   private fonts: { [name: string]: Font } = {};
 
-  public async loadFonts(fonts: { path: string; name: string }[]) {
+  public async loadFonts(
+    fonts: { path: string; name: string }[]
+  ): Promise<boolean> {
     const files = [];
     fonts.forEach(fontFile => {
       files.push(this.loadFont(fontFile));
@@ -48,7 +60,10 @@ export class Formater {
     return true;
   }
 
-  public async loadFont(fontFile: { path: string; name: string }) {
+  public async loadFont(fontFile: {
+    path: string;
+    name: string;
+  }): Promise<Font> {
     return new Promise<Font>((resolve, reject) => {
       opentype.load(fontFile.path, (err, font) => {
         if (err) {
@@ -68,8 +83,8 @@ export class Formater {
     const fullName = font.getEnglishName("fullName");
     const postScriptName = font.getEnglishName("postScriptName");
 
-    if (!this.defaultFontFamily) {
-      this.defaultFontFamily = fontFamily;
+    if (!this._defaultFontFamily) {
+      this._defaultFontFamily = fontFamily;
     }
 
     this.fonts[`${fontFamily} ${fontSubfamily}`] = font;
@@ -81,15 +96,15 @@ export class Formater {
     );
   }
 
-  public set defaultFontFamily(fontFamily) {
-    this._styles.default.fontName = fontFamily;
-  }
-
-  public get defaultFontFamily() {
-    return this._styles.default.fontName;
-  }
-
+  private _defaultFontFamily: string;
+  
   public setStyles(value: FontStyle | FontStyles) {
+    this._styles = {};
+    this.addStyles(this._defaultStyles);
+    this.addStyles(value);
+  }
+
+  public addStyles(value: FontStyle | FontStyles) {
     Object.keys(value).forEach(key => {
       if (typeof value[key] === "object") {
         this.setStyleByName(key, value[key]);
@@ -99,7 +114,7 @@ export class Formater {
     });
   }
 
-  private setStyleByName(name: string, style: FontStyle) {
+  public setStyleByName(name: string, style: FontStyle) {
     const currentStyle = Object.assign({}, this._styles[name]);
     const newStyle = Object.assign({}, style);
     if (currentStyle !== newStyle) {
@@ -110,7 +125,7 @@ export class Formater {
 
   private markAsDirty() {}
 
-  private load(fontFile) {
+  private load(fontFile): Promise<string> {
     return new Promise((resolve, reject) => {
       var xobj = new XMLHttpRequest();
       xobj.open("GET", fontFile.path, true);
@@ -128,71 +143,146 @@ export class Formater {
   public parse(text: string) {
     const itr = this.tokenizer.tokenize(text);
     const styles = [];
-    const attributes = [];
+    const attributes: TokenAttributes[] = [];
     const tokens = [];
-    const leafs = [];
+    this.leafs = [];
     let tagLevel = -1;
+    let currentTag;
 
     for (const token of itr) {
       switch (token.type) {
         case tokenTypes.OPENING_TAG:
-          const tag = token[`name`];
-          styles.push(this._styles[tag]);
-          attributes.push([]);
+          currentTag = token[`name`];
+          styles.push(this._styles[currentTag]);
+          attributes.push(new TokenAttributes());
           tagLevel++;
           break;
         case tokenTypes.ATTRIBUTE:
-          attributes[tagLevel].push({
-            name: (token as any).name,
-            value: (token as any).value
-          });
+          attributes[tagLevel].push(new TokenAttribute(token));
           if (token[`name`] === "style") {
             styles.push(this.extractCustumStyle(token[`value`]));
           }
           break;
         case tokenTypes.CLOSING_TAG:
+          if (currentTag === "img") {
+            const imageAttributes = attributes[tagLevel];
+            const img = new Image();
+            img.src = imageAttributes.getByName("src").value;
+            img.onload = () => {
+              img.width = imageAttributes.getByName("width").asInteger;
+              img.height = imageAttributes.getByName("height").asInteger;
+              console.log(currentTag, imageAttributes, img);
+            };
+          }
           styles.pop();
           attributes.pop();
           tagLevel--;
           break;
         case tokenTypes.TEXT:
           const tokenStyle = this.assign(styles, this._styles.default);
-          const tokenAttributes = this.assign(attributes, {});
+          const tokenAttributes = this.mergeAttributesLists(attributes);
           const font = this.getFontFromStyle(tokenStyle);
-
+          
           tokenStyle[`font`] = font;
           token[`style`] = tokenStyle;
           token[`attributes`] = tokenAttributes;
           token[`glyphs`] = [];
 
           const reg = /(\s+)/g;
-          // console.log({ source: token.text, result: token.text.split(reg) });
+
           token.text.split(reg).forEach(match => {
-            if(match !== ""){
-              const previous = leafs.length > 0 ? leafs[leafs.length - 1] : null;
-              const leaf = new Leaf(match, token, this.renderer, null, previous);
-              leafs.push(leaf);
+            if (match !== "") {
+              this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
+              const leaf = new Leaf(match, token, this.renderer);
+              leaf.previous =
+                this.leafs.length > 0
+                  ? this.leafs[this.leafs.length - 1]
+                  : null;
+              this.leafs.push(leaf);
             }
           });
-         
+
           /*
-          token.text.split("").forEach((char: string) => {
-            const glyph = token[`style`].font.charToGlyph(char);
-            token[`glyphs`].push(glyph);
-          });*/
+          let leaves = [];
+          const allChar = token.text.split("");
+          allChar.forEach(char => {
+            leaves.length > 0 ? leaves[leaves.length - 1] : null;
+            const leaf = new Leaf(char, token, this.renderer);
+            leaf.previous =
+              leaves.length > 0
+                ? leaves[leaves.length - 1]
+                : null;
+            switch(leaf.type){
+              case LeafType.Space:
+              case LeafType.NewLine:
+              case LeafType.Tabulation:
+              let wordLeaf = new Leaf("", token, this.renderer);
+              wordLeaf.addChild(leaves);
+              this.leafs.push(wordLeaf);
+              break;
+              case LeafType.Glyph:
+              leaves.push(leaf);
+              break;
+              case LeafType.Word:
+              break;
+            }
+          });
+          */
 
           delete token.type;
-          //tokens.push(token);
           break;
       }
     }
 
     // i must have changed
     this.markAsDirty();
+    this.composeLines(this.leafs);
+    console.log(this);
+  }
+
+  private composeLines(leafs: Leaf[]) {
+    let lastX: number = 0;
+    let lastY: number = 0;
+    let maxHeight: number = 0;
+    let maxWidth: number = 400;
+
+    leafs.forEach(leaf => {
+      if (lastY === 0) {
+        lastY = leaf.font.ascender * leaf.fontRatio;
+      }
+
+      leaf.y = lastY;
+
+      switch (leaf.type) {
+        case LeafType.NewLine:
+          lastY += maxHeight;
+          maxHeight = 0;
+          lastX = 0;
+          break;
+        case LeafType.Tabulation:
+        case LeafType.Space:
+          leaf.x = lastX;
+          leaf.y = lastY;
+          lastX += leaf.width;
+          break;
+        case LeafType.Glyph:
+        case LeafType.Word:
+          if (lastX + leaf.width > maxWidth) {
+            lastY += maxHeight;
+            maxHeight = 0;
+            lastX = 0;
+          }
+          leaf.x = lastX;
+          leaf.y = lastY;
+          leaf.getPath();
+          maxHeight = Math.max(maxHeight, leaf.height);
+          lastX += leaf.width;
+          break;
+      }
+    });
 
     this.renderer.clear();
-    this.renderer.update(leafs);
-    console.log(this);
+    this.renderer.update(this.leafs);
   }
 
   private getFontFromStyle(style) {
@@ -227,6 +317,16 @@ export class Formater {
     return style;
   }
 
+  private mergeAttributesLists(all: TokenAttributes[]){
+    const to = new TokenAttributes();
+    for ( let i = 0; i < all.length; i++ ){
+      all[i].attributes.forEach(attribute => {
+        to.push(attribute);
+      });
+    }
+    return to;
+  }
+
   private extractCustumStyle(value: string) {
     const styleString = value.replace(/ /g, "").split(";");
     let style = {};
@@ -237,5 +337,41 @@ export class Formater {
     });
 
     return style;
+  }
+}
+
+export class TokenAttributes{
+  public attributes: TokenAttribute[] = [];
+
+  public push(attribute:TokenAttribute){
+    this.attributes.push(attribute);
+  }
+
+  public pop(){
+    return this.attributes.pop();
+  }
+
+  public getByName(name: string){
+    return this.attributes.find((attribute: TokenAttribute) => {
+      return attribute.name === name;
+    });
+  }
+}
+
+export class TokenAttribute {
+  public name: string;
+  public value: string;
+
+  constructor(token){
+    this.name = token.name;
+    this.value = token.value;
+  }
+
+  public get asInteger(): number{
+    return parseInt(this.value);
+  }
+
+  public get asFloat(){
+    return parseFloat(this.value);
   }
 }

@@ -3,7 +3,7 @@ export enum defaultEntityMap {
   amp = "\u0026",
   lt = "\u003C",
   gt = "\u003E",
-  nbsp = "\u00A0",
+  nbsp = "\u00A0"
 }
 
 export enum tokenTypes {
@@ -26,12 +26,16 @@ const states = {
   inScript: Symbol()
 };
 
+export interface Entity{
+  [name: string]: string;
+}
+
 export interface TokenizerOptions {
-  entities?: { [name: string]: string };
+  entities?: Entity;
 }
 
 export class Tokenizer {
-  private entityMap;
+  private entityMap: Entity;
 
   constructor(opts: TokenizerOptions = {}) {
     this.entityMap = Object.assign({}, defaultEntityMap, opts.entities);

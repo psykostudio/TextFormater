@@ -1,4 +1,5 @@
 import { Glyph, Font, Path } from "opentype.js";
+import { FontStyle } from "./formater";
 
 export enum LeafType {
   Space = "Space",
@@ -9,26 +10,28 @@ export enum LeafType {
 }
 
 export class Leaf {
-  raw: string;
-  token;
-  children: Leaf[] = [];
-  glyph: Glyph;
-  style;
-  font;
-  fontSize: number;
-  fontRatio: number;
-  x: number = 0;
-  y: number = 0;
-  width: number;
-  height: number = 0;
-  type: LeafType;
+  public text: string;
+  public token;
+  public children: Leaf[] = [];
+  public glyph: Glyph;
+  public style: FontStyle;
+  public font: Font;
+  public fontSize: number;
+  public fontRatio: number;
+  private _x: number = 0;
+  private _y: number = 0;
+  public width: number;
+  public height: number = 0;
+  public type: LeafType;
+  public path: Path;
   renderer;
 
-  previous: Leaf = null;
-  parent: Leaf;
+  private _previous: Leaf = null;
+  private _next: Leaf = null;
+  private _parent: Leaf;
 
-  constructor(raw: string, token, renderer, parent?: Leaf, previous?: Leaf) {
-    this.raw = raw;
+  constructor(text: string, token, renderer, parent?: Leaf, previous?: Leaf) {
+    this.text = text;
     this.token = token;
     this.style = this.token[`style`];
     this.font = this.style.font;
@@ -38,70 +41,72 @@ export class Leaf {
     this.fontSize = Math.round(this.style.fontSize);
     this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
 
-    if(!this.previous && this.parent){
-      this.previous = this.parent.previous;
-    }
-
-    if(this.parent){
-      this.y = this.parent.y;
-    }else{
-      this.y = this.font.ascender * this.fontRatio;
-    }
-
-
-    this.getType(raw);
+    this.identify();
   }
 
-  private getType(raw: string) {
-    if (raw.length > 1) {
+  private identify() {
+    if (this.text.length > 1) {
       this.type = LeafType.Word;
       this.splitInGlyphs();
-      console.log(this);
     } else {
-      switch (raw) {
+      switch (this.text) {
         case " ":
           this.type = LeafType.Space;
-          console.log(this);
           break;
         case "\t":
           this.type = LeafType.Tabulation;
-          console.log(this);
           break;
         case "\r":
         case "\n":
           this.type = LeafType.NewLine;
-          console.log(this);
           break;
         default:
-          this.type = LeafType.Glyph;
+          if (this.text.length === 1) {
+            this.type = LeafType.Glyph;
+          }
           break;
       }
+
       this.buildGlyph();
     }
   }
 
   public draw(context: CanvasRenderingContext2D) {
-    if (this.type !== LeafType.Glyph) {
-      this.children.forEach(child => {
-        child.draw(context);
-      });
-    } else {
-      const path = this.getPath();
-      path[`fill`] = this.style.color;
-      path.draw(context);
+    context.beginPath();
+
+    for (let i = 0; i < this.path.commands.length; i += 1) {
+      const cmd = this.path.commands[i];
+      if (cmd.type === "M") {
+        context.moveTo(cmd.x, cmd.y);
+      } else if (cmd.type === "L") {
+        context.lineTo(cmd.x, cmd.y);
+      } else if (cmd.type === "C") {
+        context.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+      } else if (cmd.type === "Q") {
+        context.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
+      } else if (cmd.type === "Z") {
+        context.closePath();
+      }
     }
   }
 
-  private getPath() {
-    const x = this.parent ? this.parent.x + this.x : this.x;
+  public getPath(): Path {
+    if (this.children.length > 0) {
+      this.path = new Path();
+      this.children.forEach(child => {
+        this.path.extend(child.getPath());
+      });
+    } else {
+      this.path = (this.glyph as any).getPath(
+        this.x,
+        this.y,
+        this.fontSize,
+        this.renderer.renderOptions,
+        this.font
+      );
+    }
 
-    return (this.glyph as any).getPath(
-      x,
-      this.y,
-      this.fontSize,
-      this.renderer.renderOptions,
-      this.font
-    );
+    return this.path;
   }
 
   private getGlyphBound() {
@@ -125,28 +130,84 @@ export class Leaf {
   }
 
   private buildGlyph() {
-    this.glyph = this.font.charToGlyph(this.raw);
+    this.glyph = this.font.charToGlyph(this.text);
     const bounds = this.getGlyphBound();
-
     this.width = bounds.width;
     this.height = bounds.height;
-    this.type = LeafType.Glyph;
   }
 
   private splitInGlyphs() {
-    const chars = this.raw.split("");
+    const chars = this.text.split("");
     let totalWidth: number = 0;
 
     chars.forEach((char: string, index: number) => {
-      const previous = this.children[index - 1];
-      const child = new Leaf(char, this.token, this.renderer, this, previous);
+      const child = new Leaf(char, this.token, this.renderer);
+      child.previous = this.children[index - 1];
       child.parent = this;
       child.x = totalWidth;
-      this.children.push(child);
       totalWidth += child.width;
       this.height = Math.max(this.height, child.height);
+      this.addChild(child);
     });
 
     this.width = totalWidth;
+  }
+
+  public addChild(childs: Leaf | Leaf[]) {
+    if (Array.isArray(childs)) {
+      childs.forEach(child => {
+        this.addChild(child);
+      });
+    } else {
+      this.children.push(childs);
+    }
+  }
+
+  public set parent(value: Leaf) {
+    this._parent = value;
+
+    if (!this.previous && this.parent) {
+      this.previous = this.parent.previous;
+    }
+  }
+
+  public get parent() {
+    return this._parent;
+  }
+  
+  public set previous(value: Leaf) {
+    this._previous = value;
+
+    if(this._previous){
+      this._previous.next = this;
+    }
+  }
+
+  public get previous() {
+    return this._previous;
+  }
+
+  public set next(value: Leaf) {
+    this._next = value;
+  }
+
+  public get next() {
+    return this._next;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+  }
+
+  public get x() {
+    return this._x + (this.parent ? this.parent.x : 0);
+  }
+
+  public set y(value: number) {
+    this._y = value;
+  }
+
+  public get y() {
+    return this._y + (this.parent ? this.parent.y : 0);
   }
 }
