@@ -164,16 +164,6 @@ export class Formater {
           }
           break;
         case tokenTypes.CLOSING_TAG:
-          if (currentTag === "img") {
-            const imageAttributes = attributes[tagLevel];
-            const img = new Image();
-            img.src = imageAttributes.getByName("src").value;
-            img.onload = () => {
-              img.width = imageAttributes.getByName("width").asInteger;
-              img.height = imageAttributes.getByName("height").asInteger;
-              console.log(currentTag, imageAttributes, img);
-            };
-          }
           styles.pop();
           attributes.pop();
           tagLevel--;
@@ -182,8 +172,9 @@ export class Formater {
           const tokenStyle = this.assign(styles, this._styles.default);
           const tokenAttributes = this.mergeAttributesLists(attributes);
           const font = this.getFontFromStyle(tokenStyle);
-          
+          console.log(currentTag, tokenAttributes)
           tokenStyle[`font`] = font;
+          token[`tag`] = currentTag;
           token[`style`] = tokenStyle;
           token[`attributes`] = tokenAttributes;
           token[`glyphs`] = [];

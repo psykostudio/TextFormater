@@ -1,12 +1,13 @@
 import { Glyph, Font, Path } from "opentype.js";
-import { FontStyle } from "./formater";
+import { FontStyle, TokenAttributes } from "./formater";
 
 export enum LeafType {
   Space = "Space",
   NewLine = "NewLine",
   Tabulation = "Tabulation",
   Word = "Word",
-  Glyph = "Glyph"
+  Glyph = "Glyph",
+  Image = "Image",
 }
 
 export class Leaf {
@@ -24,6 +25,8 @@ export class Leaf {
   public height: number = 0;
   public type: LeafType;
   public path: Path;
+  public attributes:TokenAttributes;
+  private imgage: HTMLImageElement;
   renderer;
 
   private _previous: Leaf = null;
@@ -34,12 +37,16 @@ export class Leaf {
     this.text = text;
     this.token = token;
     this.style = this.token[`style`];
-    this.font = this.style.font;
+    this.attributes = this.token[`attributes`];
     this.renderer = renderer;
     this.parent = parent;
     this.previous = previous;
-    this.fontSize = Math.round(this.style.fontSize);
-    this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
+
+    if(this.style){
+      this.font = this.style.font;
+      this.fontSize = Math.round(this.style.fontSize);
+      this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
+    }
 
     this.identify();
   }
@@ -49,25 +56,39 @@ export class Leaf {
       this.type = LeafType.Word;
       this.splitInGlyphs();
     } else {
-      switch (this.text) {
-        case " ":
-          this.type = LeafType.Space;
-          break;
-        case "\t":
-          this.type = LeafType.Tabulation;
-          break;
-        case "\r":
-        case "\n":
-          this.type = LeafType.NewLine;
-          break;
-        default:
-          if (this.text.length === 1) {
-            this.type = LeafType.Glyph;
-          }
-          break;
-      }
+      if(this.token.tag === "img" && false){
+        this.type = LeafType.Image;
+        console.log(this.attributes);
+        this.width = this.attributes.getByName("width").asInteger;
+        this.height = this.attributes.getByName("height").asInteger;
+        this.imgage = new Image();
+        this.imgage.src = this.attributes.getByName("src").value;
+        this.imgage.onload = () => {
+          this.imgage.width = this.width;
+          this.imgage.height = this.height;
+          console.log(this.token.tag, this.attributes, this.imgage);
+        };
+      }else{
+        switch (this.text) {
+          case " ":
+            this.type = LeafType.Space;
+            break;
+          case "\t":
+            this.type = LeafType.Tabulation;
+            break;
+          case "\r":
+          case "\n":
+            this.type = LeafType.NewLine;
+            break;
+          default:
+            if (this.text.length === 1) {
+              this.type = LeafType.Glyph;
+            }
+            break;
+        }
 
-      this.buildGlyph();
+        this.buildGlyph();
+      }
     }
   }
 
