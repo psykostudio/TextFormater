@@ -43,7 +43,7 @@ export class Formater {
     a: { color: "blue", underlineWeight: 1, underlineDistance: 2 }
   };
 
-  private _styles: FontStyles = {}
+  private _styles: FontStyles = {};
 
   private fonts: { [name: string]: Font } = {};
 
@@ -97,7 +97,7 @@ export class Formater {
   }
 
   private _defaultFontFamily: string;
-  
+
   public setStyles(value: FontStyle | FontStyles) {
     this._styles = {};
     this.addStyles(this._defaultStyles);
@@ -146,13 +146,18 @@ export class Formater {
     const attributes: TokenAttributes[] = [];
     const tokens = [];
     this.leafs = [];
+    const tags = [];
     let tagLevel = -1;
     let currentTag;
+    let tokenAttributes;
+    let tokenStyle;
+    let font;
 
     for (const token of itr) {
       switch (token.type) {
         case tokenTypes.OPENING_TAG:
           currentTag = token[`name`];
+          tags.push(currentTag);
           styles.push(this._styles[currentTag]);
           attributes.push(new TokenAttributes());
           tagLevel++;
@@ -164,15 +169,40 @@ export class Formater {
           }
           break;
         case tokenTypes.CLOSING_TAG:
+          // console.log(tags[tags.length - 1], attributes[tagLevel]);
+          currentTag = tags[tags.length - 1];
+
+          if (currentTag === "img") {
+            tokenAttributes = this.mergeAttributesLists(attributes);
+            tokenStyle = this.assign(styles, this._styles.default);
+            font = this.getFontFromStyle(tokenStyle);
+
+            tokenStyle[`font`] = font;
+            token[`tag`] = currentTag;
+            token[`style`] = tokenStyle;
+            token[`attributes`] = tokenAttributes;
+            token[`glyphs`] = [];
+
+            console.log(currentTag, attributes, tokenAttributes);
+
+            this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
+            const leaf = new Leaf("", token, this.renderer);
+            leaf.previous =
+              this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
+            this.leafs.push(leaf);
+          }
+
+          tags.pop();
           styles.pop();
           attributes.pop();
           tagLevel--;
           break;
         case tokenTypes.TEXT:
-          const tokenStyle = this.assign(styles, this._styles.default);
-          const tokenAttributes = this.mergeAttributesLists(attributes);
-          const font = this.getFontFromStyle(tokenStyle);
-          console.log(currentTag, tokenAttributes)
+          tokenAttributes = this.mergeAttributesLists(attributes);
+          tokenStyle = this.assign(styles, this._styles.default);
+          font = this.getFontFromStyle(tokenStyle);
+          currentTag = tags[tags.length - 1];
+
           tokenStyle[`font`] = font;
           token[`tag`] = currentTag;
           token[`style`] = tokenStyle;
@@ -258,6 +288,7 @@ export class Formater {
           break;
         case LeafType.Glyph:
         case LeafType.Word:
+        case LeafType.Image:
           if (lastX + leaf.width > maxWidth) {
             lastY += maxHeight;
             maxHeight = 0;
@@ -308,9 +339,9 @@ export class Formater {
     return style;
   }
 
-  private mergeAttributesLists(all: TokenAttributes[]){
+  private mergeAttributesLists(all: TokenAttributes[]) {
     const to = new TokenAttributes();
-    for ( let i = 0; i < all.length; i++ ){
+    for (let i = 0; i < all.length; i++) {
       all[i].attributes.forEach(attribute => {
         to.push(attribute);
       });
@@ -331,18 +362,18 @@ export class Formater {
   }
 }
 
-export class TokenAttributes{
+export class TokenAttributes {
   public attributes: TokenAttribute[] = [];
 
-  public push(attribute:TokenAttribute){
+  public push(attribute: TokenAttribute) {
     this.attributes.push(attribute);
   }
 
-  public pop(){
+  public pop() {
     return this.attributes.pop();
   }
 
-  public getByName(name: string){
+  public getByName(name: string) {
     return this.attributes.find((attribute: TokenAttribute) => {
       return attribute.name === name;
     });
@@ -353,16 +384,16 @@ export class TokenAttribute {
   public name: string;
   public value: string;
 
-  constructor(token){
+  constructor(token) {
     this.name = token.name;
     this.value = token.value;
   }
 
-  public get asInteger(): number{
+  public get asInteger(): number {
     return parseInt(this.value);
   }
 
-  public get asFloat(){
+  public get asFloat() {
     return parseFloat(this.value);
   }
 }

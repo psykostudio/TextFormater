@@ -27,6 +27,7 @@ export class CanvasTextRenderer {
   }
 
   private renderingPasses = [
+    this.imagesRenderPass,
     this.shadowRenderPass,
     this.strokeRenderPass,
     this.fillRenderPass
@@ -39,14 +40,21 @@ export class CanvasTextRenderer {
         switch (leaf.type) {
           case LeafType.Glyph:
           case LeafType.Word:
-            renderPass.call(this, leaf);
+            if (renderPass !== this.imagesRenderPass) {
+              renderPass.call(this, leaf);
+            }
+            break;
+          case LeafType.Image:
+            if (renderPass === this.imagesRenderPass) {
+              renderPass.call(this, leaf);
+            }
             break;
         }
       });
     });
   }
 
-  private resetRenderPass(){
+  private resetRenderPass() {
     this.context.fillStyle = null;
     this.context.shadowColor = null;
     this.context.strokeStyle = null;
@@ -88,5 +96,9 @@ export class CanvasTextRenderer {
       this.context.fillStyle = leaf.style.color;
       this.context.fill();
     }
+  }
+
+  private imagesRenderPass(leaf: Leaf) {
+    leaf.drawImage(this.context);
   }
 }

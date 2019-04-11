@@ -7,7 +7,7 @@ export enum LeafType {
   Tabulation = "Tabulation",
   Word = "Word",
   Glyph = "Glyph",
-  Image = "Image",
+  Image = "Image"
 }
 
 export class Leaf {
@@ -25,8 +25,9 @@ export class Leaf {
   public height: number = 0;
   public type: LeafType;
   public path: Path;
-  public attributes:TokenAttributes;
-  private imgage: HTMLImageElement;
+  public attributes: TokenAttributes;
+  public image: HTMLImageElement;
+  public baseLine: number;
   renderer;
 
   private _previous: Leaf = null;
@@ -41,13 +42,12 @@ export class Leaf {
     this.renderer = renderer;
     this.parent = parent;
     this.previous = previous;
-
-    if(this.style){
-      this.font = this.style.font;
-      this.fontSize = Math.round(this.style.fontSize);
-      this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
-    }
-
+    
+    this.font = this.style.font;
+    this.fontSize = Math.round(this.style.fontSize);
+    this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
+    this.baseLine = this.font.ascender * this.fontRatio;
+  
     this.identify();
   }
 
@@ -56,19 +56,11 @@ export class Leaf {
       this.type = LeafType.Word;
       this.splitInGlyphs();
     } else {
-      if(this.token.tag === "img" && false){
+      if (this.token.name === "img") {
         this.type = LeafType.Image;
-        console.log(this.attributes);
         this.width = this.attributes.getByName("width").asInteger;
         this.height = this.attributes.getByName("height").asInteger;
-        this.imgage = new Image();
-        this.imgage.src = this.attributes.getByName("src").value;
-        this.imgage.onload = () => {
-          this.imgage.width = this.width;
-          this.imgage.height = this.height;
-          console.log(this.token.tag, this.attributes, this.imgage);
-        };
-      }else{
+      } else {
         switch (this.text) {
           case " ":
             this.type = LeafType.Space;
@@ -90,6 +82,43 @@ export class Leaf {
         this.buildGlyph();
       }
     }
+  }
+
+  public drawImage(context: CanvasRenderingContext2D) {
+    const drawPosition = {
+      x: Math.round(this.x),
+      y: Math.round(this.y - this.baseLine),
+    }
+
+    if (!this.image) {
+      this.loadImage(() => {
+        this.image.width = this.width;
+        this.image.height = this.height;
+        context.drawImage(
+          this.image,
+          drawPosition.x,
+          drawPosition.y,
+          this.width,
+          this.height
+        );
+      });
+    } else {
+      this.image.width = this.width;
+      this.image.height = this.height;
+      context.drawImage(
+        this.image,
+        drawPosition.x,
+        drawPosition.y,
+        this.width,
+        this.height
+      );
+    }
+  }
+
+  private loadImage(cb: () => void) {
+    this.image = new Image();
+    this.image.src = this.attributes.getByName("src").value;
+    this.image.onload = cb;
   }
 
   public draw(context: CanvasRenderingContext2D) {
@@ -117,10 +146,10 @@ export class Leaf {
       this.children.forEach(child => {
         this.path.extend(child.getPath());
       });
-    } else {
+    } else if (this.type !== LeafType.Image) {
       this.path = (this.glyph as any).getPath(
-        this.x,
-        this.y,
+        this.roundedPosition.x,
+        this.roundedPosition.y,
         this.fontSize,
         this.renderer.renderOptions,
         this.font
@@ -128,6 +157,13 @@ export class Leaf {
     }
 
     return this.path;
+  }
+
+  public get roundedPosition(){
+    return {
+      x: Math.round(this.x),
+      y: Math.round(this.y),
+    }
   }
 
   private getGlyphBound() {
@@ -195,11 +231,11 @@ export class Leaf {
   public get parent() {
     return this._parent;
   }
-  
+
   public set previous(value: Leaf) {
     this._previous = value;
 
-    if(this._previous){
+    if (this._previous) {
       this._previous.next = this;
     }
   }
