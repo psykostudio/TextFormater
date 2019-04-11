@@ -28,6 +28,7 @@ export class Leaf {
   public attributes: TokenAttributes;
   public image: HTMLImageElement;
   public baseLine: number;
+  public lineHeight: number;
   renderer;
 
   private _previous: Leaf = null;
@@ -47,7 +48,7 @@ export class Leaf {
     this.fontSize = Math.round(this.style.fontSize);
     this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
     this.baseLine = this.font.ascender * this.fontRatio;
-  
+    this.lineHeight = this.style.lineHeight || 0;
     this.identify();
   }
 
@@ -87,7 +88,7 @@ export class Leaf {
   public drawImage(context: CanvasRenderingContext2D) {
     const drawPosition = {
       x: Math.round(this.x),
-      y: Math.round(this.y - this.baseLine),
+      y: Math.round(this.y - this.baseLine + this.lineHeight),
     }
 
     if (!this.image) {
@@ -162,7 +163,7 @@ export class Leaf {
   public get roundedPosition(){
     return {
       x: Math.round(this.x),
-      y: Math.round(this.y),
+      y: Math.round(this.y + this.lineHeight),
     }
   }
 

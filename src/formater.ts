@@ -26,6 +26,7 @@ export interface FontStyle {
   shadowOffsetX?: number;
   shadowOffsetY?: number;
   font?: Font;
+  lineHeight?: number;
 }
 export interface FontStyles {
   [styleName: string]: FontStyle;
@@ -175,6 +176,7 @@ export class Formater {
           if (currentTag === "img") {
             tokenAttributes = this.mergeAttributesLists(attributes);
             tokenStyle = this.assign(styles, this._styles.default);
+            
             font = this.getFontFromStyle(tokenStyle);
 
             tokenStyle[`font`] = font;
@@ -265,7 +267,7 @@ export class Formater {
     let lastX: number = 0;
     let lastY: number = 0;
     let maxHeight: number = 0;
-    let maxWidth: number = 400;
+    let maxWidth: number = 500;
 
     leafs.forEach(leaf => {
       if (lastY === 0) {
@@ -317,7 +319,8 @@ export class Formater {
       `${style.fontName} ${style.fontStyle}`,
 
       `${style.fontFamily}`,
-      `${style.fontName}`
+      `${style.fontName}`,
+      `${this._defaultFontFamily}`
     ];
 
     const bestMatch = preferencesOrder.find(order => {
