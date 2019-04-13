@@ -2,6 +2,7 @@ import { Tokenizer, tokenTypes, Chunk } from "./tokenizer";
 import { Glyph, Font } from "opentype.js";
 import { CanvasTextRenderer } from "./renderer";
 import { Leaf, LeafType } from "./Leaf";
+import { FontLibrary, FontStyle, FontStyles } from "./FontLibrary";
 
 export interface Token {
   attributes: any;
@@ -10,31 +11,9 @@ export interface Token {
   text: string;
 }
 
-export interface FontStyle {
-  fontName?: string;
-  fontFamilly?: string;
-  fontSize?: number;
-  color?: string;
-  fontWeight?: string;
-  fontStyle?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  underlineWeight?: number;
-  underlineDistance?: number;
-  shadowColor?: string;
-  shadowBlur?: number;
-  shadowOffsetX?: number;
-  shadowOffsetY?: number;
-  font?: Font;
-  lineHeight?: number;
-}
-export interface FontStyles {
-  [styleName: string]: FontStyle;
-}
-
 export class Formater {
   private tokenizer: Tokenizer = new Tokenizer();
-  private renderer: CanvasTextRenderer = new CanvasTextRenderer();
+  public renderer: CanvasTextRenderer = new CanvasTextRenderer();
   public leafs: Leaf[];
 
   private _defaultStyles: FontStyles = {
@@ -45,59 +24,6 @@ export class Formater {
   };
 
   private _styles: FontStyles = {};
-
-  private fonts: { [name: string]: Font } = {};
-
-  public async loadFonts(
-    fonts: { path: string; name: string }[]
-  ): Promise<boolean> {
-    const files = [];
-    fonts.forEach(fontFile => {
-      files.push(this.loadFont(fontFile));
-    });
-
-    await Promise.all(files);
-    console.log(`Formater: ${files.length} fonts loaded`, this.fonts);
-    return true;
-  }
-
-  public async loadFont(fontFile: {
-    path: string;
-    name: string;
-  }): Promise<Font> {
-    return new Promise<Font>((resolve, reject) => {
-      opentype.load(fontFile.path, (err, font) => {
-        if (err) {
-          reject("Could not load font: " + err);
-        } else {
-          // store it for later use
-          this.registerFont(font);
-          resolve(font);
-        }
-      });
-    });
-  }
-
-  private registerFont(font) {
-    const fontFamily = font.getEnglishName("fontFamily");
-    const fontSubfamily = font.getEnglishName("fontSubfamily");
-    const fullName = font.getEnglishName("fullName");
-    const postScriptName = font.getEnglishName("postScriptName");
-
-    if (!this._defaultFontFamily) {
-      this._defaultFontFamily = fontFamily;
-    }
-
-    this.fonts[`${fontFamily} ${fontSubfamily}`] = font;
-    this.fonts[`${postScriptName}`] = font;
-    this.fonts[`${fullName}`] = font;
-
-    console.log(
-      `Formater: font loaded\n\tfullName:${fullName}\n\tfamily:${fontFamily}\n\tsub familly:${fontSubfamily}\n\tpostscript:${postScriptName}`
-    );
-  }
-
-  private _defaultFontFamily: string;
 
   public setStyles(value: FontStyle | FontStyles) {
     this._styles = {};
@@ -126,7 +52,7 @@ export class Formater {
 
   private markAsDirty() {}
 
-  private load(fontFile): Promise<string> {
+  private loadFont(fontFile): Promise<string> {
     return new Promise((resolve, reject) => {
       var xobj = new XMLHttpRequest();
       xobj.open("GET", fontFile.path, true);
@@ -149,7 +75,6 @@ export class Formater {
     this.leafs = [];
     const tags = [];
     let tagLevel = -1;
-    let currentTag;
     let tokenAttributes;
     let tokenStyle;
     let font;
@@ -157,35 +82,34 @@ export class Formater {
     for (const token of itr) {
       switch (token.type) {
         case tokenTypes.OPENING_TAG:
-          currentTag = token[`name`];
-          tags.push(currentTag);
-          styles.push(this._styles[currentTag]);
+          tags.push(token.name);
+          styles.push(this._styles[token.name]);
           attributes.push(new TokenAttributes());
           tagLevel++;
           break;
         case tokenTypes.ATTRIBUTE:
           attributes[tagLevel].push(new TokenAttribute(token));
-          if (token[`name`] === "style") {
-            styles.push(this.extractCustumStyle(token[`value`]));
+          if (token.name === "style") {
+            styles.push(this.extractCustumStyle(token.value));
           }
           break;
         case tokenTypes.CLOSING_TAG:
           // console.log(tags[tags.length - 1], attributes[tagLevel]);
-          currentTag = tags[tags.length - 1];
+          token.name = tags[tags.length - 1];
 
-          if (currentTag === "img") {
+          if (token.name === "img") {
             tokenAttributes = this.mergeAttributesLists(attributes);
             tokenStyle = this.assign(styles, this._styles.default);
-            
-            font = this.getFontFromStyle(tokenStyle);
+
+            font = FontLibrary.getFontFromStyle(tokenStyle);
 
             tokenStyle[`font`] = font;
-            token[`tag`] = currentTag;
+            token[`tag`] = token.name;
             token[`style`] = tokenStyle;
             token[`attributes`] = tokenAttributes;
             token[`glyphs`] = [];
 
-            console.log(currentTag, attributes, tokenAttributes);
+            console.log(token.name, attributes, tokenAttributes);
 
             this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
             const leaf = new Leaf("", token, this.renderer);
@@ -202,11 +126,11 @@ export class Formater {
         case tokenTypes.TEXT:
           tokenAttributes = this.mergeAttributesLists(attributes);
           tokenStyle = this.assign(styles, this._styles.default);
-          font = this.getFontFromStyle(tokenStyle);
-          currentTag = tags[tags.length - 1];
+          font = FontLibrary.getFontFromStyle(tokenStyle);
+          token.name = tags[tags.length - 1];
 
           tokenStyle[`font`] = font;
-          token[`tag`] = currentTag;
+          token[`tag`] = token.name;
           token[`style`] = tokenStyle;
           token[`attributes`] = tokenAttributes;
           token[`glyphs`] = [];
@@ -267,7 +191,7 @@ export class Formater {
     let lastX: number = 0;
     let lastY: number = 0;
     let maxHeight: number = 0;
-    let maxWidth: number = 500;
+    let maxWidth: number = 1024;
 
     leafs.forEach(leaf => {
       if (lastY === 0) {
@@ -307,31 +231,6 @@ export class Formater {
 
     this.renderer.clear();
     this.renderer.update(this.leafs);
-  }
-
-  private getFontFromStyle(style) {
-    const preferencesOrder = [
-      `${style.fontFamily} ${style.fontWeight} ${style.fontStyle}`,
-      `${style.fontName} ${style.fontWeight} ${style.fontStyle}`,
-      `${style.fontFamily} ${style.fontWeight}`,
-      `${style.fontName} ${style.fontWeight}`,
-      `${style.fontFamily} ${style.fontStyle}`,
-      `${style.fontName} ${style.fontStyle}`,
-
-      `${style.fontFamily}`,
-      `${style.fontName}`,
-      `${this._defaultFontFamily}`
-    ];
-
-    const bestMatch = preferencesOrder.find(order => {
-      return this.getFontByName(order) ? true : false;
-    });
-
-    return this.getFontByName(bestMatch);
-  }
-
-  private getFontByName(name) {
-    return this.fonts[name];
   }
 
   private assign(from, to) {

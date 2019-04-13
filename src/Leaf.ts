@@ -1,5 +1,7 @@
 import { Glyph, Font, Path } from "opentype.js";
-import { FontStyle, TokenAttributes } from "./formater";
+import { TokenAttributes } from "./formater";
+import { FontStyle } from "./FontLibrary";
+import { ImageLibrary } from "./imagesLibrary";
 
 export enum LeafType {
   Space = "Space",
@@ -45,7 +47,7 @@ export class Leaf {
     this.previous = previous;
     
     this.font = this.style.font;
-    this.fontSize = Math.round(this.style.fontSize);
+    this.fontSize = Math.round(this.style.fontSize * this.renderer.resolution);
     this.fontRatio = (1 / this.font.unitsPerEm) * this.fontSize;
     this.baseLine = this.font.ascender * this.fontRatio;
     this.lineHeight = this.style.lineHeight || 0;
@@ -59,8 +61,11 @@ export class Leaf {
     } else {
       if (this.token.name === "img") {
         this.type = LeafType.Image;
-        this.width = this.attributes.getByName("width").asInteger;
-        this.height = this.attributes.getByName("height").asInteger;
+
+        const imgSrc = this.attributes.getByName("src").value;
+        this.image = ImageLibrary.getImage(imgSrc);
+        this.width = this.attributes.getByName("width").asInteger * this.renderer.resolution;
+        this.height = this.attributes.getByName("height").asInteger * this.renderer.resolution;
       } else {
         switch (this.text) {
           case " ":
@@ -92,7 +97,9 @@ export class Leaf {
     }
 
     if (!this.image) {
-      this.loadImage(() => {
+      const imgSrc = this.attributes.getByName("src").value;
+      ImageLibrary.loadImage({ url: imgSrc }).then(() => {
+        this.image = ImageLibrary.getImage(imgSrc);
         this.image.width = this.width;
         this.image.height = this.height;
         context.drawImage(

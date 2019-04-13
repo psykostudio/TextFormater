@@ -4,7 +4,7 @@ import { defaultEntityMap } from "./tokenizer";
 import { Leaf, LeafType } from "./Leaf";
 
 export class CanvasTextRenderer {
-  private canvas: HTMLCanvasElement = document.createElement("canvas");
+  public canvas: HTMLCanvasElement = document.createElement("canvas");
   private context: CanvasRenderingContext2D = this.canvas.getContext("2d");
   private debug: HTMLDivElement;
   private _currentStyle;
@@ -17,13 +17,22 @@ export class CanvasTextRenderer {
     },
     letterSpacing: 100
   };
+  
+  public resolution: number = 1;
+
+  public constructor(){
+    this.debug = document.getElementById("DEBUG") as HTMLDivElement;
+    if(!this.debug){
+      this.debug = document.createElement("div");
+      this.debug.id = "DEBUG";
+      document.body.appendChild(this.debug);
+    }
+  }
 
   public clear() {
     this.canvas.width = 1024;
     this.canvas.height = 1024;
-    this.debug = document.createElement("div");
     this.debug.appendChild(this.canvas);
-    document.body.appendChild(this.debug);
   }
 
   private renderingPasses = [

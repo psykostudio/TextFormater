@@ -26,12 +26,20 @@ const states = {
   inScript: Symbol()
 };
 
-export interface Entity{
+export interface Entity {
   [name: string]: string;
 }
 
 export interface TokenizerOptions {
   entities?: Entity;
+}
+
+export interface Token {
+  type: tokenTypes;
+  name: string;
+  text?: string;
+  value?: string;
+  token?: string;
 }
 
 export class Tokenizer {
@@ -46,7 +54,7 @@ export class Tokenizer {
     Object.assign(this.entityMap, map);
   }
 
-  public *tokenize(html) {
+  public *tokenize(html): IterableIterator<Token> {
     let currentText;
     for (const tkn of this._tokenize(html)) {
       if (tkn.type === tokenTypes.TEXT) {
@@ -59,7 +67,7 @@ export class Tokenizer {
       } else {
         if (currentText) {
           const deentText = Tokenizer.deentityify(currentText, this.entityMap);
-          yield { type: tokenTypes.TEXT, text: deentText };
+          yield { type: tokenTypes.TEXT, text: deentText, name: "" };
           currentText = undefined;
         }
         yield tkn;
@@ -67,8 +75,8 @@ export class Tokenizer {
     }
   }
 
-  private *_tokenize(html) {
-    yield { type: tokenTypes.START };
+  private *_tokenize(html): IterableIterator<Token> {
+    yield { type: tokenTypes.START, name : "" };
     let pos = 0;
     let state = states.inText;
     let currentTag;
@@ -86,11 +94,11 @@ export class Tokenizer {
           yield { type: tokenTypes.CLOSING_TAG, name: next.match[2] };
         } else if ((next = Chunk.getText(html, pos))) {
           pos += next.length;
-          yield { type: tokenTypes.TEXT, text: next.match[1] };
+          yield { type: tokenTypes.TEXT, name: currentTag, text: next.match[1] };
         } else {
           const text = html.substring(pos, pos + 1);
           pos += 1;
-          yield { type: tokenTypes.TEXT, text };
+          yield { type: tokenTypes.TEXT, name: currentTag, text };
         }
       } else if (state === states.inTag) {
         if ((next = Chunk.getAttributeName(html, pos))) {
@@ -120,7 +128,7 @@ export class Tokenizer {
         break;
       }
     }
-    yield { type: tokenTypes.DONE };
+    yield { type: tokenTypes.DONE, name: "" };
   }
   private static handlerPattern = /&(#?)([a-z0-9]+);/gi;
   private static handlers = new WeakMap();
