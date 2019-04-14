@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "amd",
-    "types": ["es6-promise", "opentype"],
+    /* Basic Options */
+    "target": "es6", /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', or 'ESNEXT'. */
+    /* "module": "amd", Specify module code generation: 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
+    /* "strict": true, */
+    "lib": ["es2016", "dom"],
     "outDir": "./dist",
     "sourceMap": true,
     "declaration": true,
@@ -11,7 +13,5 @@
     "removeComments": false,
     "noImplicitAny": false
   },
-  "exclude": ["node_modules", "**/*.spec.ts", "dist"],
-  "files": ["./src/index.ts"],
-  "lib": ["es6-promise"]
+  "exclude": ["node_modules", "**/*.spec.ts", "dist"]
 }
