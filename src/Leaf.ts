@@ -2,6 +2,7 @@ import { Glyph, Font, Path } from "opentype.js";
 import { TokenAttributes } from "./formater";
 import { FontStyle } from "./FontLibrary";
 import { ImageLibrary } from "./imagesLibrary";
+import { TextRenderer } from "./renderer";
 
 export enum LeafType {
   Space = "Space",
@@ -31,13 +32,14 @@ export class Leaf {
   public image: HTMLImageElement;
   public baseLine: number;
   public lineHeight: number;
-  renderer;
+  public letterSpacing: number;
+  renderer: TextRenderer;
 
   private _previous: Leaf = null;
   private _next: Leaf = null;
   private _parent: Leaf;
 
-  constructor(text: string, token, renderer, parent?: Leaf, previous?: Leaf) {
+  constructor(text: string, token, renderer: TextRenderer, parent?: Leaf, previous?: Leaf) {
     this.text = text;
     this.token = token;
     this.style = this.token[`style`];
@@ -45,6 +47,7 @@ export class Leaf {
     this.renderer = renderer;
     this.parent = parent;
     this.previous = previous;
+    this.letterSpacing = this.style.letterSpacing || 0;
     
     this.font = this.style.font;
     this.fontSize = Math.round(this.style.fontSize * this.renderer.resolution);
@@ -74,6 +77,7 @@ export class Leaf {
           case "\t":
             this.type = LeafType.Tabulation;
             break;
+          case "↵":
           case "\r":
           case "\n":
             this.type = LeafType.NewLine;
@@ -93,7 +97,7 @@ export class Leaf {
   public drawImage(context: CanvasRenderingContext2D) {
     const drawPosition = {
       x: Math.round(this.x),
-      y: Math.round(this.y - this.baseLine + this.lineHeight),
+      y: Math.round(this.y - this.baseLine),
     }
 
     if (!this.image) {
@@ -170,7 +174,7 @@ export class Leaf {
   public get roundedPosition(){
     return {
       x: Math.round(this.x),
-      y: Math.round(this.y + this.lineHeight),
+      y: Math.round(this.y),
     }
   }
 
@@ -185,11 +189,11 @@ export class Leaf {
         this.glyph
       );
       this.previous.glyph.advanceWidth += kerning;
-    }
+    } 
 
     const width = this.glyph.advanceWidth * this.fontRatio;
-    const yDiff = this.glyph[`yMax`] - this.glyph[`yMin`];
-    const height = isNaN(yDiff) ? 0 : yDiff * this.fontRatio;
+    const yDiff = this.glyph[`yMax`] ? this.glyph[`yMax`] - this.glyph[`yMin`] * this.fontRatio : this.fontSize;
+    const height = isNaN(yDiff) ? 0 : yDiff;
 
     return { width, height };
   }
@@ -210,7 +214,7 @@ export class Leaf {
       child.previous = this.children[index - 1];
       child.parent = this;
       child.x = totalWidth;
-      totalWidth += child.width;
+      totalWidth += child.width + this.letterSpacing;
       this.height = Math.max(this.height, child.height);
       this.addChild(child);
     });

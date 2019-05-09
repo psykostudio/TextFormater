@@ -52,21 +52,6 @@ export class Formater {
 
   private markAsDirty() {}
 
-  private loadFont(fontFile): Promise<string> {
-    return new Promise((resolve, reject) => {
-      var xobj = new XMLHttpRequest();
-      xobj.open("GET", fontFile.path, true);
-      xobj.onreadystatechange = () => {
-        if (xobj.readyState === 4 && xobj.status === 200) {
-          resolve(xobj.responseText);
-        } else {
-          reject();
-        }
-      };
-      xobj.send();
-    });
-  }
-
   public parse(text: string) {
     const itr = this.tokenizer.tokenize(text);
     const styles = [];
@@ -109,8 +94,6 @@ export class Formater {
             token[`attributes`] = tokenAttributes;
             token[`glyphs`] = [];
 
-            console.log(token.name, attributes, tokenAttributes);
-
             this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
             const leaf = new Leaf("", token, this.renderer);
             leaf.previous =
@@ -148,7 +131,7 @@ export class Formater {
               this.leafs.push(leaf);
             }
           });
-
+          
           /*
           let leaves = [];
           const allChar = token.text.split("");
@@ -184,14 +167,13 @@ export class Formater {
     // i must have changed
     this.markAsDirty();
     this.composeLines(this.leafs);
-    console.log(this);
   }
 
   private composeLines(leafs: Leaf[]) {
     let lastX: number = 0;
     let lastY: number = 0;
     let maxHeight: number = 0;
-    let maxWidth: number = 1024;
+    let maxWidth: number = 2048;
 
     leafs.forEach(leaf => {
       if (lastY === 0) {
@@ -202,32 +184,34 @@ export class Formater {
 
       switch (leaf.type) {
         case LeafType.NewLine:
+          lastX = 0;
           lastY += maxHeight;
           maxHeight = 0;
-          lastX = 0;
           break;
         case LeafType.Tabulation:
         case LeafType.Space:
           leaf.x = lastX;
           leaf.y = lastY;
-          lastX += leaf.width;
+          lastX += leaf.width + leaf.letterSpacing;
           break;
         case LeafType.Glyph:
         case LeafType.Word:
         case LeafType.Image:
           if (lastX + leaf.width > maxWidth) {
+            lastX = 0;
             lastY += maxHeight;
             maxHeight = 0;
-            lastX = 0;
           }
           leaf.x = lastX;
           leaf.y = lastY;
           leaf.getPath();
-          maxHeight = Math.max(maxHeight, leaf.height);
+          maxHeight = Math.max(maxHeight, leaf.height + leaf.lineHeight);
           lastX += leaf.width;
           break;
       }
     });
+
+    console.log(lastX, maxHeight);
 
     this.renderer.clear();
     this.renderer.update(this.leafs);

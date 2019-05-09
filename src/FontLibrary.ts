@@ -17,6 +17,7 @@ export interface FontStyle {
   shadowOffsetY?: number;
   font?: Font;
   lineHeight?: number;
+  letterSpacing?: number;
 }
 
 export interface FontStyles {

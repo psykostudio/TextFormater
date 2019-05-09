@@ -3,12 +3,31 @@ import { Glyph, Font, Path } from "opentype.js";
 import { defaultEntityMap } from "./tokenizer";
 import { Leaf, LeafType } from "./Leaf";
 
-export class CanvasTextRenderer {
+export interface RenderOptions {
+  hinting: boolean;
+  kerning: boolean;
+  features: {
+    liga: boolean;
+    rlig: boolean;
+  };
+  letterSpacing: number;
+}
+
+export interface TextRenderer {
+  resolution: number;
+  renderOptions: RenderOptions;
+  clear();
+  update(leafs: Leaf[]);
+}
+
+export class CanvasTextRenderer implements TextRenderer {
   public canvas: HTMLCanvasElement = document.createElement("canvas");
   private context: CanvasRenderingContext2D = this.canvas.getContext("2d");
   private debug: HTMLDivElement;
   private _currentStyle;
-  public renderOptions = {
+
+  public resolution: number = 1;
+  public renderOptions: RenderOptions = {
     hinting: true,
     kerning: true,
     features: {
@@ -18,7 +37,6 @@ export class CanvasTextRenderer {
     letterSpacing: 100
   };
   
-  public resolution: number = 1;
 
   public constructor(){
     this.debug = document.getElementById("DEBUG") as HTMLDivElement;
@@ -30,12 +48,13 @@ export class CanvasTextRenderer {
   }
 
   public clear() {
-    this.canvas.width = 1024;
-    this.canvas.height = 1024;
+    this.canvas.width = 2024;
+    this.canvas.height = 2024;
     this.debug.appendChild(this.canvas);
   }
 
   private renderingPasses = [
+    // this.debugRenderingPass,
     this.imagesRenderPass,
     this.shadowRenderPass,
     this.strokeRenderPass,
@@ -71,6 +90,15 @@ export class CanvasTextRenderer {
     this.context.shadowBlur = 0;
     this.context.shadowOffsetX = 0;
     this.context.shadowOffsetY = 0;
+  }
+  
+  private debugRenderingPass(leaf: Leaf) {
+    const pos = leaf.roundedPosition;
+    this.context.rect(pos.x, pos.y - leaf.baseLine, leaf.width, leaf.height);
+    
+    this.context.strokeStyle = leaf.style.stroke;
+    this.context.lineWidth = leaf.style.strokeWidth;
+    this.context.stroke();
   }
 
   private shadowRenderPass(leaf: Leaf) {
