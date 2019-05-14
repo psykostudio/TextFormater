@@ -133,6 +133,22 @@ export class Leaf {
     this.image.onload = cb;
   }
 
+  public contains(point: { x: number, y: number }){
+    const roundedBounds = {
+      x: Math.round(this.x),
+      y: Math.round(this.y - this.baseLine),
+      width: Math.round(this.width),
+      height: Math.round(this.height),
+    }
+
+    if ( point.x < roundedBounds.x ) return false;
+    if ( point.x > roundedBounds.x + roundedBounds.width ) return false;
+    if ( point.y < roundedBounds.y ) return false;
+    if ( point.y > roundedBounds.y + roundedBounds.height) return false;
+
+    return true;
+  }
+
   public draw(context: CanvasRenderingContext2D) {
     context.beginPath();
 

@@ -169,11 +169,13 @@ export class Formater {
     this.composeLines(this.leafs);
   }
 
+  public wordWrap: number = 0;
+
   private composeLines(leafs: Leaf[]) {
     let lastX: number = 0;
     let lastY: number = 0;
     let maxHeight: number = 0;
-    let maxWidth: number = 2048;
+    let maxWidth: number = 0;
 
     leafs.forEach(leaf => {
       if (lastY === 0) {
@@ -197,23 +199,24 @@ export class Formater {
         case LeafType.Glyph:
         case LeafType.Word:
         case LeafType.Image:
-          if (lastX + leaf.width > maxWidth) {
-            lastX = 0;
-            lastY += maxHeight;
-            maxHeight = 0;
+          if(this.wordWrap && this.wordWrap > 0){
+            if (lastX + leaf.width > this.wordWrap) {
+              lastX = 0;
+              lastY += maxHeight;
+              maxHeight = 0;
+            }
           }
           leaf.x = lastX;
           leaf.y = lastY;
           leaf.getPath();
-          maxHeight = Math.max(maxHeight, leaf.height + leaf.lineHeight);
           lastX += leaf.width;
+          maxHeight = Math.max(maxHeight, leaf.height + leaf.lineHeight);
+          maxWidth = Math.max(maxWidth, lastX);
           break;
       }
     });
 
-    console.log(lastX, maxHeight);
-
-    this.renderer.clear();
+    this.renderer.clear(Math.max(maxWidth, lastX), lastY);
     this.renderer.update(this.leafs);
   }
 

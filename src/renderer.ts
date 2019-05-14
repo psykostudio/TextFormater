@@ -16,7 +16,7 @@ export interface RenderOptions {
 export interface TextRenderer {
   resolution: number;
   renderOptions: RenderOptions;
-  clear();
+  clear(width: number, height: number);
   update(leafs: Leaf[]);
 }
 
@@ -36,20 +36,26 @@ export class CanvasTextRenderer implements TextRenderer {
     },
     letterSpacing: 100
   };
-  
 
-  public constructor(){
+  public constructor() {
     this.debug = document.getElementById("DEBUG") as HTMLDivElement;
-    if(!this.debug){
+    if (!this.debug) {
       this.debug = document.createElement("div");
       this.debug.id = "DEBUG";
       document.body.appendChild(this.debug);
     }
   }
 
-  public clear() {
-    this.canvas.width = 2024;
-    this.canvas.height = 2024;
+  private nearestUpperPowerOfTwo(x: number) {
+    let power = 1;
+    while (power < x) power *= 2;
+    return power;
+  }
+
+  public clear(width: number, height: number) {
+    this.canvas.width = this.nearestUpperPowerOfTwo(width);
+    this.canvas.height = this.nearestUpperPowerOfTwo(height);
+    console.log(width, height, this.canvas.width, this.canvas.height);
     this.debug.appendChild(this.canvas);
   }
 
@@ -91,13 +97,13 @@ export class CanvasTextRenderer implements TextRenderer {
     this.context.shadowOffsetX = 0;
     this.context.shadowOffsetY = 0;
   }
-  
+
   private debugRenderingPass(leaf: Leaf) {
     const pos = leaf.roundedPosition;
     this.context.rect(pos.x, pos.y - leaf.baseLine, leaf.width, leaf.height);
-    
+
     this.context.strokeStyle = leaf.style.stroke;
-    this.context.lineWidth = leaf.style.strokeWidth;
+    this.context.lineWidth = leaf.style.strokeWidth * 2;
     this.context.stroke();
   }
 
