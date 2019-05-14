@@ -1,8 +1,10 @@
-import { Tokenizer, tokenTypes, Chunk } from "./tokenizer";
-import { Glyph, Font } from "opentype.js";
+import { Tokenizer, tokenTypes } from "./tokenizer";
+import { Glyph } from "opentype.js";
 import { CanvasTextRenderer } from "./renderer";
-import { Leaf, LeafType } from "./Leaf";
-import { FontLibrary, FontStyle, FontStyles } from "./FontLibrary";
+import { Leaf, LeafType } from "./leaf";
+import { FontLibrary, FontStyle, FontStyles } from "./libraries/fontlibrary";
+import { IObservable } from "./interfaces/IObservable";
+import { IObserver } from "./interfaces/IObserver";
 
 export interface Token {
   attributes: any;
@@ -11,10 +13,16 @@ export interface Token {
   text: string;
 }
 
-export class Formater {
+export class Formater implements IObservable {
   private tokenizer: Tokenizer = new Tokenizer();
   public renderer: CanvasTextRenderer = new CanvasTextRenderer();
-  public leafs: Leaf[];
+  public leaves: Leaf[];
+
+  private _observers: IObserver[] = [];
+
+  public wordWrap: number = 0;
+  public width: number;
+  public height: number;
 
   private _defaultStyles: FontStyles = {
     default: { color: "black" },
@@ -46,18 +54,33 @@ export class Formater {
     const newStyle = Object.assign({}, style);
     if (currentStyle !== newStyle) {
       this._styles[name] = Object.assign(currentStyle, newStyle);
-      this.markAsDirty();
     }
   }
 
-  private markAsDirty() {}
+  public RegisterObserver(observer: IObserver){
+    this._observers.push(observer);
+  }
+
+  public RemoveObserver(observer: IObserver){
+    this._observers.forEach((registered, index) => {
+      if(registered === observer){
+        this._observers.splice(index, 1);
+      }
+    });
+  }
+
+  public NotifyObservers(){
+    this._observers.forEach((observer) => {
+      observer.ReceiveNotification("UPDATE");
+    });
+  }
 
   public parse(text: string) {
     const itr = this.tokenizer.tokenize(text);
     const styles = [];
     const attributes: TokenAttributes[] = [];
     const tokens = [];
-    this.leafs = [];
+    this.leaves = [];
     const tags = [];
     let tagLevel = -1;
     let tokenAttributes;
@@ -94,11 +117,11 @@ export class Formater {
             token[`attributes`] = tokenAttributes;
             token[`glyphs`] = [];
 
-            this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
+            this.leaves.length > 0 ? this.leaves[this.leaves.length - 1] : null;
             const leaf = new Leaf("", token, this.renderer);
             leaf.previous =
-              this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
-            this.leafs.push(leaf);
+              this.leaves.length > 0 ? this.leaves[this.leaves.length - 1] : null;
+            this.leaves.push(leaf);
           }
 
           tags.pop();
@@ -122,13 +145,13 @@ export class Formater {
 
           token.text.split(reg).forEach(match => {
             if (match !== "") {
-              this.leafs.length > 0 ? this.leafs[this.leafs.length - 1] : null;
+              this.leaves.length > 0 ? this.leaves[this.leaves.length - 1] : null;
               const leaf = new Leaf(match, token, this.renderer);
               leaf.previous =
-                this.leafs.length > 0
-                  ? this.leafs[this.leafs.length - 1]
+                this.leaves.length > 0
+                  ? this.leaves[this.leaves.length - 1]
                   : null;
-              this.leafs.push(leaf);
+              this.leaves.push(leaf);
             }
           });
           
@@ -148,7 +171,7 @@ export class Formater {
               case LeafType.Tabulation:
               let wordLeaf = new Leaf("", token, this.renderer);
               wordLeaf.addChild(leaves);
-              this.leafs.push(wordLeaf);
+              this.leaves.push(wordLeaf);
               break;
               case LeafType.Glyph:
               leaves.push(leaf);
@@ -164,20 +187,16 @@ export class Formater {
       }
     }
 
-    // i must have changed
-    this.markAsDirty();
-    this.composeLines(this.leafs);
+    this.composeLines(this.leaves);
   }
 
-  public wordWrap: number = 0;
-
-  private composeLines(leafs: Leaf[]) {
+  private composeLines(leaves: Leaf[]) {
     let lastX: number = 0;
     let lastY: number = 0;
     let maxHeight: number = 0;
     let maxWidth: number = 0;
 
-    leafs.forEach(leaf => {
+    leaves.forEach(leaf => {
       if (lastY === 0) {
         lastY = leaf.font.ascender * leaf.fontRatio;
       }
@@ -216,8 +235,10 @@ export class Formater {
       }
     });
 
-    this.renderer.clear(Math.max(maxWidth, lastX), lastY);
-    this.renderer.update(this.leafs);
+    this.width = Math.max(maxWidth, lastX);
+    this.height = lastY;
+    
+    this.NotifyObservers();
   }
 
   private assign(from, to) {

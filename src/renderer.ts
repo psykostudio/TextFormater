@@ -1,7 +1,7 @@
-import { Token } from "./formater";
-import { Glyph, Font, Path } from "opentype.js";
-import { defaultEntityMap } from "./tokenizer";
-import { Leaf, LeafType } from "./Leaf";
+
+import { Leaf, LeafType } from "./leaf";
+import { IObserver } from "./interfaces/IObserver";
+import { IObservable } from "./interfaces/IObservable";
 
 export interface RenderOptions {
   hinting: boolean;
@@ -20,11 +20,13 @@ export interface TextRenderer {
   update(leafs: Leaf[]);
 }
 
-export class CanvasTextRenderer implements TextRenderer {
+export class CanvasTextRenderer implements TextRenderer, IObservable {
   public canvas: HTMLCanvasElement = document.createElement("canvas");
   private context: CanvasRenderingContext2D = this.canvas.getContext("2d");
   private debug: HTMLDivElement;
   private _currentStyle;
+
+  private _observers: IObserver[] = [];
 
   public resolution: number = 1;
   public renderOptions: RenderOptions = {
@@ -45,6 +47,24 @@ export class CanvasTextRenderer implements TextRenderer {
       document.body.appendChild(this.debug);
     }
   }
+  
+  public RegisterObserver(observer: IObserver){
+    this._observers.push(observer);
+  }
+
+  public RemoveObserver(observer: IObserver){
+    this._observers.forEach((registered, index) => {
+      if(registered === observer){
+        this._observers.splice(index, 1);
+      }
+    });
+  }
+
+  public NotifyObservers(){
+    this._observers.forEach((observer) => {
+      observer.ReceiveNotification("UPDATE");
+    });
+  }
 
   private nearestUpperPowerOfTwo(x: number) {
     let power = 1;
@@ -52,10 +72,10 @@ export class CanvasTextRenderer implements TextRenderer {
     return power;
   }
 
-  public clear(width: number, height: number) {
-    this.canvas.width = this.nearestUpperPowerOfTwo(width);
-    this.canvas.height = this.nearestUpperPowerOfTwo(height);
-    console.log(width, height, this.canvas.width, this.canvas.height);
+  public clear(width?: number, height?: number) {
+    this.canvas.width = this.nearestUpperPowerOfTwo(width || this.canvas.width);
+    this.canvas.height = this.nearestUpperPowerOfTwo(height || this.canvas.height);
+    
     this.debug.appendChild(this.canvas);
   }
 

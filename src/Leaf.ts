@@ -1,8 +1,8 @@
 import { Glyph, Font, Path } from "opentype.js";
 import { TokenAttributes } from "./formater";
-import { FontStyle } from "./FontLibrary";
-import { ImageLibrary } from "./imagesLibrary";
 import { TextRenderer } from "./renderer";
+import { FontStyle } from "./libraries/fontlibrary";
+import { ImageLibrary } from "./libraries/imageslibrary";
 
 export enum LeafType {
   Space = "Space",
