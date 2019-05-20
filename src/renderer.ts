@@ -2,6 +2,7 @@
 import { Leaf, LeafType } from "./leaf";
 import { IObserver } from "./interfaces/IObserver";
 import { IObservable } from "./interfaces/IObservable";
+import { Formater } from "./formater";
 
 export interface RenderOptions {
   hinting: boolean;
@@ -13,16 +14,26 @@ export interface RenderOptions {
   letterSpacing: number;
 }
 
+export interface PaddingRectangle{
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
+
+export type RenderingContext = CanvasRenderingContext2D | WebGLRenderingContext;
+
 export interface TextRenderer {
   resolution: number;
   renderOptions: RenderOptions;
   clear(width: number, height: number);
-  update(leafs: Leaf[]);
+  update(context: RenderingContext);
 }
 
 export class CanvasTextRenderer implements TextRenderer, IObservable {
   public canvas: HTMLCanvasElement = document.createElement("canvas");
-  private context: CanvasRenderingContext2D = this.canvas.getContext("2d");
+  public context: CanvasRenderingContext2D = this.canvas.getContext("2d");
+  public formater: Formater;
   private debug: HTMLDivElement;
   private _currentStyle;
 
@@ -38,6 +49,8 @@ export class CanvasTextRenderer implements TextRenderer, IObservable {
     },
     letterSpacing: 100
   };
+
+  public padding: PaddingRectangle = { top: 0, left: 0, right: 0, bottom: 0 };
 
   public constructor() {
     this.debug = document.getElementById("DEBUG") as HTMLDivElement;
@@ -66,7 +79,7 @@ export class CanvasTextRenderer implements TextRenderer, IObservable {
     });
   }
 
-  private nearestUpperPowerOfTwo(x: number) {
+  public nearestUpperPowerOfTwo(x: number) {
     let power = 1;
     while (power < x) power *= 2;
     return power;
@@ -87,81 +100,83 @@ export class CanvasTextRenderer implements TextRenderer, IObservable {
     this.fillRenderPass
   ];
 
-  public update(leafs: Leaf[]) {
+  public update(context: RenderingContext) {
     this.renderingPasses.forEach(renderPass => {
-      this.resetRenderPass();
-      leafs.forEach(leaf => {
+      this.resetRenderPass(context);
+      this.formater.leaves.forEach(leaf => {
         switch (leaf.type) {
           case LeafType.Glyph:
           case LeafType.Word:
             if (renderPass !== this.imagesRenderPass) {
-              renderPass.call(this, leaf);
+              renderPass.call(this, context, leaf);
             }
             break;
           case LeafType.Image:
             if (renderPass === this.imagesRenderPass) {
-              renderPass.call(this, leaf);
+              renderPass.call(this, context, leaf);
             }
             break;
         }
       });
     });
+
+    this.NotifyObservers();
   }
 
-  private resetRenderPass() {
-    this.context.fillStyle = null;
-    this.context.shadowColor = null;
-    this.context.strokeStyle = null;
-    this.context.lineWidth = 0;
-    this.context.shadowBlur = 0;
-    this.context.shadowOffsetX = 0;
-    this.context.shadowOffsetY = 0;
+  private resetRenderPass(context) {
+    context.fillStyle = null;
+    context.shadowColor = null;
+    context.strokeStyle = null;
+    context.lineWidth = 0;
+    context.shadowBlur = 0;
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
   }
 
-  private debugRenderingPass(leaf: Leaf) {
+  private debugRenderingPass(context, leaf: Leaf) {
     const pos = leaf.roundedPosition;
-    this.context.rect(pos.x, pos.y - leaf.baseLine, leaf.width, leaf.height);
+    context.rect(pos.x + this.padding.left, pos.y - leaf.baseLine + this.padding.top, leaf.width, leaf.height);
 
-    this.context.strokeStyle = leaf.style.stroke;
-    this.context.lineWidth = leaf.style.strokeWidth * 2;
-    this.context.stroke();
+    context.strokeStyle = leaf.style.stroke;
+    context.lineWidth = leaf.style.strokeWidth * 2;
+    context.stroke();
   }
 
-  private shadowRenderPass(leaf: Leaf) {
+  private shadowRenderPass(context, leaf: Leaf) {
     if (leaf.style.shadowColor && leaf.style.shadowBlur) {
-      leaf.draw(this.context);
+      leaf.draw(context, this.padding.left, this.padding.top);
 
-      this.context.shadowColor = leaf.style.shadowColor;
-      this.context.shadowBlur = leaf.style.shadowBlur || 0;
-      this.context.shadowOffsetX = leaf.style.shadowOffsetX || 0;
-      this.context.shadowOffsetY = leaf.style.shadowOffsetY || 0;
-      this.context.fillStyle = leaf.style.shadowColor;
-      this.context.fill();
+      context.shadowColor = leaf.style.shadowColor;
+      context.shadowBlur = leaf.style.shadowBlur || 0;
+      context.shadowOffsetX = leaf.style.shadowOffsetX || 0;
+      context.shadowOffsetY = leaf.style.shadowOffsetY || 0;
+      context.fillStyle = leaf.style.shadowColor;
+      context.fill();
     }
   }
 
-  private strokeRenderPass(leaf: Leaf) {
+  private strokeRenderPass(context, leaf: Leaf) {
     if (leaf.style.stroke) {
-      leaf.draw(this.context);
+      leaf.draw(context, this.padding.left, this.padding.top);
 
-      this.context.strokeStyle = leaf.style.stroke;
-      this.context.fillStyle = leaf.style.stroke;
-      this.context.lineWidth = leaf.style.strokeWidth * 2;
-      this.context.fill();
-      this.context.stroke();
+      context.strokeStyle = leaf.style.stroke;
+      context.fillStyle = leaf.style.stroke;
+      context.lineWidth = leaf.style.strokeWidth * 2;
+      context.fill();
+      context.stroke();
     }
   }
 
-  private fillRenderPass(leaf: Leaf) {
+  private fillRenderPass(context, leaf: Leaf) {
     if (leaf.style.color) {
-      leaf.draw(this.context);
+      leaf.draw(context, this.padding.left, this.padding.top);
 
-      this.context.fillStyle = leaf.style.color;
-      this.context.fill();
+      context.fillStyle = leaf.style.color;
+      context.fill();
     }
   }
 
-  private imagesRenderPass(leaf: Leaf) {
-    leaf.drawImage(this.context);
+  private imagesRenderPass(context, leaf: Leaf) {
+    leaf.drawImage(context, this.padding.left, this.padding.top);
   }
 }

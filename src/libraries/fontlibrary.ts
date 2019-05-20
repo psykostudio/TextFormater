@@ -51,14 +51,19 @@ export class FontLibrary {
           reject("Could not load font: " + err);
         } else {
           // store it for later use
-          this.registerFont(font);
+          this.registerFont(fontFile.name, font);
           resolve(font);
         }
       });
     });
   }
 
-  private static registerFont(font) {
+  public static addFont(id, fontDatas) {
+    const font = opentype.parse(fontDatas);
+    this.registerFont(id, font);
+  }
+
+  public static registerFont(id, font) {
     const fontFamily = font.getEnglishName("fontFamily");
     const fontSubfamily = font.getEnglishName("fontSubfamily");
     const fullName = font.getEnglishName("fullName");
@@ -68,12 +73,13 @@ export class FontLibrary {
       this._defaultFontFamily = fontFamily;
     }
 
+    this.fontsByName[`${id}`] = font;
     this.fontsByName[`${fontFamily} ${fontSubfamily}`] = font;
     this.fontsByName[`${postScriptName}`] = font;
     this.fontsByName[`${fullName}`] = font;
 
     console.log(
-      `Formater: font loaded\n\tfullName:${fullName}\n\tfamily:${fontFamily}\n\tsub familly:${fontSubfamily}\n\tpostscript:${postScriptName}`
+      `Formater: font loaded\n\tid:${id}\n\tfullName:${fullName}\n\tfamily:${fontFamily}\n\tsub familly:${fontSubfamily}\n\tpostscript:${postScriptName}`, font
     );
   }
 

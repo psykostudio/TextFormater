@@ -198,7 +198,7 @@ export class Formater implements IObservable {
 
     leaves.forEach(leaf => {
       if (lastY === 0) {
-        lastY = leaf.font.ascender * leaf.fontRatio;
+        lastY = leaf.baseLine;
       }
 
       leaf.y = lastY;

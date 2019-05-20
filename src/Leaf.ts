@@ -94,10 +94,10 @@ export class Leaf {
     }
   }
 
-  public drawImage(context: CanvasRenderingContext2D) {
+  public drawImage(context: CanvasRenderingContext2D, offsetX: number = 0, offsetY: number = 0) {
     const drawPosition = {
-      x: Math.round(this.x),
-      y: Math.round(this.y - this.baseLine),
+      x: Math.round(this.x + offsetX),
+      y: Math.round(this.y - this.baseLine + offsetY),
     }
 
     if (!this.image) {
@@ -149,19 +149,19 @@ export class Leaf {
     return true;
   }
 
-  public draw(context: CanvasRenderingContext2D) {
+  public draw(context: CanvasRenderingContext2D, offsetX: number = 0, offsetY: number = 0) {
     context.beginPath();
 
     for (let i = 0; i < this.path.commands.length; i += 1) {
       const cmd = this.path.commands[i];
       if (cmd.type === "M") {
-        context.moveTo(cmd.x, cmd.y);
+        context.moveTo(cmd.x + offsetX, cmd.y + offsetY);
       } else if (cmd.type === "L") {
-        context.lineTo(cmd.x, cmd.y);
+        context.lineTo(cmd.x + offsetX, cmd.y + offsetY);
       } else if (cmd.type === "C") {
-        context.bezierCurveTo(cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.x, cmd.y);
+        context.bezierCurveTo(cmd.x1 + offsetX, cmd.y1 + offsetY, cmd.x2 + offsetX, cmd.y2 + offsetY, cmd.x + offsetX, cmd.y + offsetY);
       } else if (cmd.type === "Q") {
-        context.quadraticCurveTo(cmd.x1, cmd.y1, cmd.x, cmd.y);
+        context.quadraticCurveTo(cmd.x1 + offsetX, cmd.y1 + offsetY, cmd.x + offsetX, cmd.y + offsetY);
       } else if (cmd.type === "Z") {
         context.closePath();
       }
