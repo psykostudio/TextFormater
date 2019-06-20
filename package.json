@@ -1,5 +1,5 @@
 {
-  "name": "textformater",
+  "name": "@psykostudio/textformater",
   "version": "0.0.1",
   "description": "compose text layouts with opentype and draw them with the engine of your choice.",
   "main": "dist/index.js",
@@ -22,5 +22,16 @@
     "@types/opentype": "0.0.4",
     "es6-promise": "^4.2.6",
     "opentype.js": "^0.11.0"
-  }
+  },
+  "devDependencies": {},
+  "keywords": [
+    "canvas",
+    "text",
+    "opentype",
+    "font",
+    "renderer",
+    "format",
+    "formater",
+    "layout"
+  ]
 }
