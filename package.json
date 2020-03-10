@@ -2,9 +2,15 @@
   "name": "@psykostudio/textformater",
   "version": "0.0.1",
   "description": "compose text layouts with opentype and draw them with the engine of your choice.",
-  "main": "dist/index.js",
+  "main": "dist/textformater.min.js",
+  "module": "dist/build/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "npm run compile && npm run dts && npm run webpack",
+    "compile": "tsc -p .",
     "watch": "tsc -p . --watch",
+    "dts": "homemade-dts-bundler --entry dist/.declarations/index.d.ts --output dist/index.d.ts --libraryName @psykostudio/textformater",
+    "webpack": "webpack --config ./webpack.conf.js --mode production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,12 +24,19 @@
   },
   "homepage": "https://github.com/psykostudio/TextFormater#readme",
   "dependencies": {
-    "@types/es6-promise": "^3.3.0",
-    "@types/opentype": "0.0.4",
-    "es6-promise": "^4.2.6",
     "opentype.js": "^0.11.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@babel/core": "^7.8.7",
+    "@babel/preset-env": "^7.8.7",
+    "@types/opentype": "0.0.4",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.6.4",
+    "homemade-dts-bundler": "^0.3.2",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.0",
+    "webpack-cli": "^3.3.11"
+  },
   "keywords": [
     "canvas",
     "text",
