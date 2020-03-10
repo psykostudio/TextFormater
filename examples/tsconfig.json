@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "system",
+    "lib": [
+      "es2016",
+      "dom"
+    ],
+    "outDir": "dist",
+    "sourceMap": true,
+    "noImplicitAny": false,
+    "types": [
+      "@psykostudio/textformater",
+      "@types/opentype"
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}

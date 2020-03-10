@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Example 1</title>
+  <script type="systemjs-importmap">
+    {
+      "imports": {
+        "@psykostudio/textformater": "../dist/textformater.min.js",
+        "opentype.js": "./node_modules/opentype.js/dist/opentype.min.js"
+      }
+    }
+  </script>
+  <script text="text/javascript" src="./node_modules/systemjs/dist/system.js"></script>
+  <script text="text/javascript" src="./node_modules/systemjs/dist/extras/named-register.js"></script>
+  <script text="text/javascript" src="./node_modules/systemjs/dist/extras/named-exports.js"></script>
+</head>
+<body>
+  <script>
+    System.import('./dist/example1.js');
+  </script>
+</body>
+</html>
