@@ -31,7 +31,10 @@ module.exports = {
                   "ie": "11"
                 }
               }
-            ]
+            ],
+          ],
+          plugins: [
+            "@babel/plugin-transform-runtime",
           ],
         },
       },
