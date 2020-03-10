@@ -1,0 +1,5 @@
+dist/.declarations
+examples
+src
+tsconfig.json
+webpack.conf.js
