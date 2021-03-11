@@ -1,7 +1,7 @@
-import { Formater } from "./index";
 import { TextRenderer, CanvasTextRenderer } from "./renderer";
 import { FontLibrary, FontStyle, FontStyles } from "./libraries/fontlibrary";
 import { IObserver } from "./interfaces/IObserver";
+import { Formater } from "./formater";
 
 export class Layout implements IObserver {
   public formater: Formater = new Formater();

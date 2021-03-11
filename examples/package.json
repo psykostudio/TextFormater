@@ -1,0 +1,19 @@
+{
+  "name": "@psykostudio/textformater-examples",
+  "version": "0.0.1",
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "serve": "http-server .."
+  },
+  "dependencies": {
+    "@psykostudio/textformater": "file:../",
+    "opentype.js": "^0.11.0"
+  },
+  "devDependencies": {
+    "@types/opentype": "0.0.4",
+    "http-server": "^0.12.1",
+    "systemjs": "^6.2.5",
+    "typescript": "^3.8.3"
+  }
+}

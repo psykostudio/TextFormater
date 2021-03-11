@@ -1,1 +1,0 @@
-{"version":3,"file":"tokenize.js","sourceRoot":"","sources":["../../src/tokenizer/tokenize.ts"],"names":[],"mappings":";;;IAKA,kBACE,KAAa,EACb,OAA0B;QAE1B,IAAI,SAAS,GAAG,IAAI,mBAAS,CAAC,IAAI,uBAAY,CAAC,+BAAa,CAAC,EAAE,OAAO,CAAC,CAAC;QACxE,OAAO,SAAS,CAAC,QAAQ,CAAC,KAAK,CAAC,CAAC;IACnC,CAAC;IAND,2BAMC"}
