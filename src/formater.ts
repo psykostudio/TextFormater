@@ -33,6 +33,12 @@ export class Formater implements IObservable {
 
   private _styles: FontStyles = {};
 
+  public constructor(){
+    console.log("Formater.opentypejs", opentypejs);
+    console.log("Formater.opentypejs.Glyph", opentypejs.Glyph);
+    console.log("Formater.Glyph", Glyph);
+  }
+
   public setStyles(value: FontStyle | FontStyles) {
     this._styles = {};
     this.addStyles(this._defaultStyles);
