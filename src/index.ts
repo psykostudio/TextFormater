@@ -1,4 +1,3 @@
-import "opentype.js";
 import { Formater } from "./formater";
 import { Layout } from "./layout";
 import { IObservable } from "./interfaces/IObservable";

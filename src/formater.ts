@@ -1,5 +1,5 @@
-import { Tokenizer, tokenTypes } from "./tokenizer";
 import { Glyph } from "opentype.js";
+import { Tokenizer, tokenTypes } from "./tokenizer";
 import { CanvasTextRenderer } from "./renderer";
 import { Leaf, LeafType } from "./leaf";
 import { FontLibrary, FontStyle, FontStyles } from "./libraries/fontlibrary";
@@ -34,9 +34,7 @@ export class Formater implements IObservable {
   private _styles: FontStyles = {};
 
   public constructor(){
-    console.log("Formater.opentypejs", opentypejs);
-    console.log("Formater.opentypejs.Glyph", opentypejs.Glyph);
-    console.log("Formater.Glyph", Glyph);
+    console.log("GLYPH", Glyph);
   }
 
   public setStyles(value: FontStyle | FontStyles) {

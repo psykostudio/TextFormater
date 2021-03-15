@@ -1,5 +1,5 @@
-import { FontLibrary, Formater } from "@psykostudio/textformater";
 import * as opentypejs from "opentype.js";
+import { FontLibrary, Formater } from "@psykostudio/textformater";
 
 console.log("exemple1.ts opentypejs", opentypejs);
 console.log("formater:", Formater);
