@@ -1,4 +1,4 @@
-import { Font } from "opentype.js";
+import { load, parse, Font } from "opentype.js";
 
 export interface FontStyle {
   fontName?: string;
@@ -46,7 +46,7 @@ export class FontLibrary {
     name: string;
   }): Promise<Font> {
     return new Promise<Font>((resolve, reject) => {
-      opentype.load(fontFile.path, (err, font) => {
+      load(fontFile.path, (err, font) => {
         if (err) {
           reject("Could not load font: " + err);
         } else {
@@ -59,7 +59,7 @@ export class FontLibrary {
   }
 
   public static addFont(id, fontDatas) {
-    const font = opentype.parse(fontDatas);
+    const font = parse(fontDatas);
     this.registerFont(id, font);
   }
 

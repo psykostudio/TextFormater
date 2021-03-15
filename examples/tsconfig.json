@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "system",
+    "moduleResolution": "node",
     "lib": [
       "es2016",
       "dom"
@@ -11,7 +12,7 @@
     "noImplicitAny": false,
     "types": [
       "@psykostudio/textformater",
-      "@types/opentype"
+      "@types/opentype.js"
     ]
   },
   "include": [

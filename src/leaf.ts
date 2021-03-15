@@ -171,7 +171,7 @@ export class Leaf {
   public getPath(): Path {
     if (this.children.length > 0) {
       this.path = new Path();
-      this.children.forEach(child => {
+      this.children.forEach((child) => {
         this.path.extend(child.getPath());
       });
     } else if (this.type !== LeafType.Image) {

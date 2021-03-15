@@ -1,21 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
     "lib": [
       "es2016",
       "dom"
     ],
-    "outDir": "./dist/build",
-    "sourceMap": true,
-    "declaration": true,
-    "declarationDir": "./dist/.declarations",
+    "esModuleInterop": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "removeComments": false,
-    "noImplicitAny": false
+    "declarationDir": "dist/types",
+    "declaration": true,
+    "target": "es2015",
+    "module": "es2015",
+    "moduleResolution": "node"
   },
   "include": [
-    "src"
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ]
 }
