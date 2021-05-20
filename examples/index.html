@@ -4,6 +4,21 @@
 <head>
   <meta charset="utf-8" />
   <title>Example 1</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body{
+      background-image: url("assets/images/blueprint_01.png");
+    }
+    
+    canvas {
+      border: 1px solid #000000;
+    }
+  </style>
   <script type="systemjs-importmap">
     {
       "imports": {
@@ -16,9 +31,13 @@
   <script text="text/javascript" src="./node_modules/systemjs/dist/extras/amd.js"></script>
   <script text="text/javascript" src="./node_modules/systemjs/dist/extras/named-register.js"></script>
 </head>
+
 <body>
   <script>
+    // "typr-ts": "./node_modules/typr-ts/dist/index.js",,
+        
     System.import('./dist/example1.js');
   </script>
 </body>
+
 </html>

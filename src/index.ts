@@ -1,18 +1,18 @@
 import { Formater } from "./formater";
-import { Layout } from "./layout";
 import { IObservable } from "./interfaces/IObservable";
 import { IObserver } from "./interfaces/IObserver";
 import { Tokenizer, TokenizerOptions, tokenTypes } from "./tokenizer";
-import { CanvasTextRenderer } from "./renderer";
+import { CanvasTextRenderer } from "./renderers/canvas/canvasrenderer";
+import { TextRenderer } from "./renderers/renderer";
 import { FontLibrary, FontStyle, FontStyles } from "./libraries/fontlibrary";
 import { ImageLibrary } from "./libraries/imageslibrary";
 
 export {
-  Layout,
   Formater,
   Tokenizer,
   TokenizerOptions,
   tokenTypes,
+  TextRenderer,
   CanvasTextRenderer,
   FontLibrary,
   FontStyle,

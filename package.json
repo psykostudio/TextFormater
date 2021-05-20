@@ -24,7 +24,10 @@
   },
   "homepage": "https://github.com/psykostudio/TextFormater#readme",
   "dependencies": {
-    "opentype.js": "^0.11.0"
+    "html-tokenizer": "^4.0.1",
+    "opentype.js": "^0.11.0",
+    "typr-ts": "^1.1.5",
+    "typr.js": "^1.0.0"
   },
   "devDependencies": {
     "@babel/core": "7.12.16",
@@ -33,6 +36,7 @@
     "@babel/plugin-transform-runtime": "^7.13.10",
     "@babel/preset-env": "7.12.16",
     "@babel/preset-typescript": "7.12.16",
+    "@fredli74/typr": "^0.3.3",
     "@types/opentype.js": "0.7.2",
     "babel-loader": "8.2.2",
     "fork-ts-checker-webpack-plugin": "6.1.0",

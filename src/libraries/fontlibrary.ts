@@ -1,4 +1,6 @@
 import { load, parse, Font } from "opentype.js";
+import typr from "typr.js";
+// import * as typr from '@fredli74/typr';
 
 export interface FontStyle {
   fontName?: string;
@@ -18,6 +20,8 @@ export interface FontStyle {
   font?: Font;
   lineHeight?: number;
   letterSpacing?: number;
+  width?: string | number;
+  height?: string | number;
 }
 
 export interface FontStyles {
@@ -26,6 +30,7 @@ export interface FontStyles {
 
 export class FontLibrary {
   private static fontsByName: { [name: string]: Font } = {};
+  private static _fontsByName: { [name: string]: any } = {};
   private static _defaultFontFamily: string;
 
   public static async loadFonts(
@@ -37,7 +42,6 @@ export class FontLibrary {
     });
 
     await Promise.all(files);
-    console.log(`Formater: ${files.length} fonts loaded`, this.fontsByName);
     return true;
   }
 
@@ -46,16 +50,55 @@ export class FontLibrary {
     name: string;
   }): Promise<Font> {
     return new Promise<Font>((resolve, reject) => {
+      this.load(fontFile.name, fontFile.path);
+
       load(fontFile.path, (err, font) => {
         if (err) {
           reject("Could not load font: " + err);
         } else {
           // store it for later use
           this.registerFont(fontFile.name, font);
+
           resolve(font);
         }
       });
     });
+  }
+
+  private static load(id: string, path: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      var request = new XMLHttpRequest();
+      request.open("GET", path, true);
+      request.responseType = "arraybuffer";
+
+      request.onerror = (err) => {
+        reject(`Could not load font: ${err}`);
+      };
+
+      request.onload = (e: ProgressEvent) => {
+        const ratio = e.loaded / e.total;
+        // console.log(id, ratio);
+      };
+
+      request.onloadend = (e: ProgressEvent) => {
+        const target: XMLHttpRequest = e.target as XMLHttpRequest;
+        // const font = new typr.Font(target.response);
+        const font = typr.parse(target.response);
+        this._registerFont(id, font);
+        resolve(font);
+      };
+
+      request.send();
+    });
+  }
+
+  private static _registerFont(id: string, font: any): void {
+    this._fontsByName[id] = font;
+    this._fontsByName[font.name.ID] = font;
+    // this._fontsByName[font.name.fontFamily] = font;
+    this._fontsByName[font.name.fullName] = font;
+    this._fontsByName[font.name.postScriptName] = font;
+    this._fontsByName[`${font.name.fontFamily} ${font.name.fontSubfamily}`] = font;
   }
 
   public static addFont(id, fontDatas) {
@@ -78,9 +121,19 @@ export class FontLibrary {
     this.fontsByName[`${postScriptName}`] = font;
     this.fontsByName[`${fullName}`] = font;
 
-    console.log(
-      `Formater: font loaded\n\tid:${id}\n\tfullName:${fullName}\n\tfamily:${fontFamily}\n\tsub familly:${fontSubfamily}\n\tpostscript:${postScriptName}`, font
-    );
+    /*console.info(
+      `FontLibrary: font loaded`, {
+      id,
+      fullName,
+      fontFamily,
+      fontSubfamily,
+      postScriptName,
+      font
+    });*/
+  }
+
+  public static getTyprFontFromStyle(style): any {
+    return this.getTyprFontByName(this.findBestTyprMatchForStyle(style));
   }
 
   public static getFontFromStyle(style) {
@@ -101,14 +154,57 @@ export class FontLibrary {
       `${this._defaultFontFamily}`
     ];
 
-    const bestMatch = preferedOrder.find(order => {
-      return this.getFontByName(order) ? true : false;
+    const bestMatch = preferedOrder.find((order) => {
+      const found = this.getFontByName(order);
+      return found ? true : false;
     });
+
+    if (!bestMatch) {
+      console.warn(`can't find font for style`, style);
+    }
 
     return bestMatch;
   }
 
   private static getFontByName(name) {
-    return this.fontsByName[name];
+    if (this.fontsByName[name]) {
+      return this.fontsByName[name];
+    } else {
+      return null;
+    }
+  }
+
+  private static findBestTyprMatchForStyle(style) {
+    const preferedOrder = [
+      `${style.fontFamily} ${style.fontWeight} ${style.fontStyle}`,
+      `${style.fontName} ${style.fontWeight} ${style.fontStyle}`,
+      `${style.fontFamily} ${style.fontWeight}`,
+      `${style.fontName} ${style.fontWeight}`,
+      `${style.fontFamily} ${style.fontStyle}`,
+      `${style.fontName} ${style.fontStyle}`,
+
+      `${style.fontFamily}`,
+      `${style.fontName}`,
+      `${this._defaultFontFamily}`
+    ];
+
+    const bestMatch = preferedOrder.find((order) => {
+      const found = this.getTyprFontByName(order);
+      return found ? true : false;
+    });
+
+    if (!bestMatch) {
+      console.warn(`can't find font for style`, style);
+    }
+
+    return bestMatch;
+  }
+
+  private static getTyprFontByName(name: string): any {
+    if (this._fontsByName[name]) {
+      return this._fontsByName[name];
+    } else {
+      return null;
+    }
   }
 }

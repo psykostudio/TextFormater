@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "@psykostudio/textformater": "file:../",
-    "opentype.js": "^0.11.0"
+    "opentype.js": "^0.11.0",
+    "typr-ts": "^1.1.5",
+    "typr.js": "^1.0.0"
   },
   "devDependencies": {
     "@types/opentype.js": "0.7.2",

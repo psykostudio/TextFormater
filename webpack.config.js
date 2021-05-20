@@ -18,7 +18,7 @@ module.exports = {
       commonjs2: "opentype.js",
       amd: "opentype.js",
       root: "opentype",
-    },
+    }
   },
   module: {
     rules: [{ test: /\.(ts|js)x?$/, loader: 'babel-loader', exclude: /node_modules/ }],
